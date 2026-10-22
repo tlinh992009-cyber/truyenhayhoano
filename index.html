@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
-    <!-- Firebase SDK (v9 Compatibility) -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
@@ -35,7 +35,7 @@
         </div>
     </header>
 
-    <!-- Global Announcement Banner (Màu dịu mát) -->
+    <!-- Global Announcement Banner -->
     <div id="global-announcement" class="hidden bg-indigo-50 text-indigo-700 border-b border-indigo-100 px-4 py-2 text-center text-sm font-medium shadow-sm">
         <!-- Dynamic Announcement -->
     </div>
@@ -306,7 +306,6 @@
 
     <!-- SCRIPT LOGIC -->
     <script>
-        // Cấu hình Firebase Realtime Database công khai
         const firebaseConfig = {
             databaseURL: "https://truyenhayhoano-default-rtdb.asia-southeast1.firebasedatabase.app"
         };
@@ -327,6 +326,9 @@
         let activeChapterId = null;
         let selectedAuthorName = null;
         let isAuthLogin = true;
+
+        // Render giao diện tức thì
+        updateNav();
 
         // Lắng nghe dữ liệu trực tuyến từ Firebase Mây
         database.ref('truyenhayhoano_db').on('value', (snapshot) => {
@@ -421,7 +423,7 @@
                 nav.innerHTML = `
                     <div class="flex items-center gap-3 text-sm">
                         <span class="bg-amber-400 text-slate-900 px-2.5 py-1 rounded-full font-bold flex items-center gap-1">
-                            <i class="fa-solid fa-coins"></i> ${freshUser.coins} Xu
+                            <i class="fa-solid fa-coins"></i> ${freshUser.coins || 0} Xu
                         </span>
                         <button onclick="watchAds()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-2 py-1 rounded text-xs font-bold">+ Nhận Xu</button>
                         <span onclick="showProfile('${freshUser.username}')" class="font-medium cursor-pointer hover:underline">${freshUser.username} ${freshUser.role === 'admin' ? '<span class="text-xs text-red-300 font-bold">(Admin)</span>' : ''}</span>
@@ -453,7 +455,7 @@
             const rep = calculateReputation(username);
 
             document.getElementById('profile-username').innerText = user.username;
-            document.getElementById('profile-coins').innerText = user.coins + ' Xu';
+            document.getElementById('profile-coins').innerText = (user.coins || 0) + ' Xu';
             document.getElementById('profile-reputation').innerText = `Danh tiếng: ${rep.title} (${rep.likes} lượt thích)`;
 
             const myStories = db.stories.filter(s => s.author === username);
@@ -548,7 +550,7 @@
                 sender.coins -= amount;
             }
 
-            receiver.coins += amount;
+            receiver.coins = (receiver.coins || 0) + amount;
             saveData();
             closeModal('modal-donate');
             alert(`Tặng thành công ${amount} Xu cho tác giả ${selectedAuthorName}!`);
@@ -692,7 +694,7 @@
                     }
                     freshUser.coins -= chap.price;
                     const author = db.users.find(u => u.username === story.author);
-                    if (author) author.coins += chap.price;
+                    if (author) author.coins = (author.coins || 0) + chap.price;
 
                     chap.unlockedBy.push(currentUser.username);
                     saveData();
@@ -800,7 +802,7 @@
                 <div class="py-3 flex justify-between items-center">
                     <div>
                         <span class="font-bold text-sm">${u.username}</span>
-                        <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded ml-2">${u.coins} Xu</span>
+                        <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded ml-2">${u.coins || 0} Xu</span>
                         ${u.banned ? '<span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded ml-1 font-bold">Đã cấm</span>' : ''}
                     </div>
                     ${u.username !== 'quantrithuylinh' ? `
@@ -828,7 +830,7 @@
             const amount = prompt(`Nhập số Xu muốn tặng cho ${username}:`, '100');
             if (amount && !isNaN(amount)) {
                 const user = db.users.find(u => u.username === username);
-                user.coins += parseInt(amount);
+                user.coins = (user.coins || 0) + parseInt(amount);
                 saveData();
                 alert(`Đã tặng ${amount} Xu cho ${username}!`);
             }
@@ -874,7 +876,7 @@
             window.open(targetLink, '_blank');
             
             const user = db.users.find(u => u.username === currentUser.username);
-            user.coins += 20;
+            user.coins = (user.coins || 0) + 20;
             saveData();
             alert('Bạn nhận được +20 Xu khi xem quảng cáo!');
         }
