@@ -3,1762 +3,721 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StoryStudio Pro - Thu Nhập Xu & Bình Luận Truyện</title>
-    <!-- Tailwind CSS CDN -->
+    <title>Truyện Hay Ho Nở - Đọc & Sáng Tác Truyện Online</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        sepia: {
-                            bg: '#fbf0d9',
-                            card: '#f4e4c1',
-                            text: '#5f4b32',
-                            border: '#e2cfab'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,600;1,400&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        .font-serif-custom { font-family: 'Lora', serif; }
-        .font-merriweather { font-family: 'Merriweather', serif; }
-        .theme-sepia {
-            background-color: #fbf0d9 !important;
-            color: #4a3b2c !important;
-        }
-        .theme-sepia .sepia-card {
-            background-color: #f3e5c8 !important;
-            border-color: #e2ceaa !important;
-            color: #4a3b2c !important;
-        }
-        .theme-sepia input, .theme-sepia textarea, .theme-sepia select {
-            background-color: #f8ebd0 !important;
-            border-color: #d8c29d !important;
-            color: #4a3b2c !important;
-        }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
-    </style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body id="app-body" class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 transition-colors duration-200 min-h-screen flex flex-col">
+<body class="bg-slate-100 font-sans text-slate-800 min-h-screen flex flex-col">
 
-    <!-- Header Navigation -->
-    <header class="sticky top-0 z-40 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sepia-card">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <!-- Logo -->
-                <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('library')">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/30">
-                        <i class="fa-solid fa-fire text-lg"></i>
-                    </div>
-                    <div>
-                        <h1 class="font-bold text-lg leading-tight">StoryStudio Pro</h1>
-                        <p class="text-xs text-slate-500 dark:text-slate-400">Đọc Truyện, Tặng Xu & Bình Luận</p>
-                    </div>
-                </div>
-
-                <!-- Navigation Tabs, Coin Wallet & Account -->
-                <nav class="flex items-center gap-2">
-                    <button id="nav-library" onclick="switchTab('library')" class="px-3 py-1.5 rounded-xl text-sm font-medium transition bg-amber-500 text-white shadow-md shadow-amber-500/20">
-                        <i class="fa-solid fa-book-open mr-1"></i> Thư Viện
-                    </button>
-                    <button id="nav-writer" onclick="switchTab('writer')" class="px-3 py-1.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                        <i class="fa-solid fa-pen-nib mr-1"></i> Viết / Đăng
-                    </button>
-                    <button id="nav-profile" onclick="switchTab('profile')" class="px-3 py-1.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                        <i class="fa-solid fa-user mr-1"></i> Trang Cá Nhân
-                    </button>
-
-                    <!-- Coin Wallet & Ad Button -->
-                    <div class="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 px-2.5 py-1 rounded-xl">
-                        <i class="fa-solid fa-coins text-amber-500 text-sm"></i>
-                        <span id="user-coin-balance" class="text-xs font-bold text-amber-700 dark:text-amber-300">0 Xu</span>
-                        <button onclick="openAdModal()" class="ml-1 px-2 py-0.5 text-[11px] font-bold bg-gradient-to-r from-amber-500 to-rose-500 text-white rounded-lg shadow hover:opacity-90 transition flex items-center gap-1">
-                            <i class="fa-solid fa-circle-play"></i> +10 Xu
-                        </button>
-                    </div>
-
-                    <!-- Theme Switcher -->
-                    <div class="flex items-center gap-1 border-l border-slate-200 dark:border-slate-700 pl-2 ml-1">
-                        <button onclick="setTheme('light')" class="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-amber-500"><i class="fa-solid fa-sun text-sm"></i></button>
-                        <button onclick="setTheme('sepia')" class="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-amber-700"><i class="fa-solid fa-book-sheet text-sm"></i></button>
-                        <button onclick="setTheme('dark')" class="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-indigo-400"><i class="fa-solid fa-moon text-sm"></i></button>
-                    </div>
-
-                    <!-- User Account Area -->
-                    <div id="user-auth-area" class="border-l border-slate-200 dark:border-slate-700 pl-2 ml-1 flex items-center gap-2">
-                        <!-- Dynamic Account status -->
-                    </div>
-                </nav>
+    <!-- Header / Navigation -->
+    <header class="bg-indigo-700 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <h1 onclick="showSection('home')" class="text-2xl font-bold cursor-pointer flex items-center gap-2">
+                <i class="fa-solid fa-book-open text-amber-300"></i> Truyện Hay Ho Nở
+            </h1>
+            <div id="user-nav" class="flex items-center gap-4">
+                <!-- Dynamic Nav content via JS -->
             </div>
         </div>
     </header>
 
-    <!-- Main Container -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-
-        <!-- TAB 1: THƯ VIỆN TRUYỆN (LIBRARY) -->
-        <section id="tab-library" class="space-y-6">
-            <!-- Search & Filter Bar -->
-            <div class="flex flex-col lg:flex-row gap-4 justify-between items-center bg-white dark:bg-slate-800 sepia-card p-4 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm">
-                <div class="relative w-full lg:w-64">
-                    <input type="text" id="search-input" oninput="renderLibrary()" placeholder="Tìm tên truyện, tác giả..." 
-                        class="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-sm"></i>
-                </div>
-                
-                <div class="flex flex-wrap items-center gap-2.5 w-full lg:w-auto justify-end">
-                    <select id="sort-filter" onchange="renderLibrary()" class="px-3 py-2 text-sm rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-100 font-bold focus:outline-none focus:ring-2 focus:ring-amber-500">
-                        <option value="RECOMMENDED">🔥 Đề Xuất (Lượt Xem & Tim)</option>
-                        <option value="VIEWS">👁️ Lượt Xem Nhiều Nhất</option>
-                        <option value="LIKES">❤️ Được Thả Tim Nhiều Nhất</option>
-                        <option value="NEWEST">🆕 Tác Phẩm Mới Nhất</option>
+    <!-- Main Content Container -->
+    <main class="max-w-6xl mx-auto px-4 py-6 flex-grow w-full">
+        
+        <!-- SECTION: Home / danh sách truyện -->
+        <section id="sec-home" class="space-y-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-bold text-slate-700 border-l-4 border-indigo-600 pl-3">Khám Phá Truyện</h2>
+                <div class="flex gap-2">
+                    <select id="sort-filter" onchange="renderStories()" class="px-3 py-1.5 border rounded-lg text-sm bg-white">
+                        <option value="newest">Mới nhất</option>
+                        <option value="views">Lượt xem nhiều nhất</option>
+                        <option value="likes">Yêu thích nhất</option>
                     </select>
-
-                    <select id="type-filter" onchange="renderLibrary()" class="px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500 font-semibold">
-                        <option value="ALL">Tất cả hình thức</option>
-                        <option value="TEXT">📖 Truyện Chữ</option>
-                        <option value="COMIC">🎨 Truyện Tranh</option>
-                        <option value="AUDIO">🎧 Audio Book</option>
-                    </select>
-
-                    <select id="genre-filter" onchange="renderLibrary()" class="px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500">
-                        <option value="ALL">Tất cả thể loại</option>
-                        <option value="Đam Mỹ">Đam Mỹ</option>
-                        <option value="Ngôn Tình">Ngôn Tình</option>
-                        <option value="Tiên Hiệp">Tiên Hiệp</option>
-                        <option value="Kỳ Ảo">Kỳ Ảo</option>
-                        <option value="Trinh Thám">Trinh Thám</option>
-                        <option value="Đời Thường">Đời Thường</option>
-                        <option value="Khoa Học Viễn Tưởng">Khoa Học Viễn Tưởng</option>
-                    </select>
-
-                    <button onclick="handleCreateNewClick()" class="px-4 py-2 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white font-medium rounded-xl text-sm shadow-md transition flex items-center gap-2 whitespace-nowrap">
-                        <i class="fa-solid fa-plus"></i> Tạo Mới
-                    </button>
                 </div>
             </div>
-
-            <!-- Stories Grid -->
-            <div id="stories-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Dynamic Stories Injected Here -->
+            <div id="story-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <!-- Rendered dynamically -->
             </div>
         </section>
 
-        <!-- TAB 2: SOẠN THẢO / ĐĂNG BÀI (WRITER) -->
-        <section id="tab-writer" class="hidden space-y-6">
-            <div class="bg-white dark:bg-slate-800 sepia-card rounded-2xl border border-slate-200/80 dark:border-slate-700/80 p-6 shadow-sm space-y-6">
-                <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-slate-200 dark:border-slate-700 pb-4">
-                    <div>
-                        <h2 class="text-xl font-bold flex items-center gap-2">
-                            <i class="fa-solid fa-pen-to-square text-amber-500"></i> Trình Đăng & Soạn Thảo Chương
-                        </h2>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Đặt tiêu đề, thiết lập mở khóa bằng Xu và tải nội dung chương</p>
-                    </div>
-
-                    <button onclick="saveChapter()" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-xl text-sm shadow-md transition flex items-center gap-2">
-                        <i class="fa-solid fa-cloud-arrow-up"></i> Lưu / Đăng Chương
+        <!-- SECTION: Detail Story -->
+        <section id="sec-detail" class="hidden space-y-6">
+            <button onclick="showSection('home')" class="text-indigo-600 hover:underline flex items-center gap-1">
+                <i class="fa-solid fa-arrow-left"></i> Quay lại
+            </button>
+            <div id="story-detail-content" class="bg-white rounded-xl p-6 shadow-sm">
+                <!-- Dynamic Content -->
+            </div>
+            <!-- Chapter List -->
+            <div class="bg-white rounded-xl p-6 shadow-sm space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-lg">Danh sách chương</h3>
+                    <button id="add-chap-btn" onclick="openAddChapterModal()" class="hidden px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm">
+                        + Thêm chương
                     </button>
                 </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Chọn Tác Phẩm Của Tôi</label>
-                        <select id="writer-story-select" onchange="onWriterStoryChange()" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500">
-                            <!-- Options injected -->
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Tên / Số Chương</label>
-                        <input type="text" id="writer-chapter-title" placeholder="VD: Chương 1: Sự khởi đầu" 
-                            class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Cài Đặt Mở Khóa</label>
-                        <div class="flex items-center gap-2">
-                            <input type="number" id="writer-coin-cost" min="0" value="0" placeholder="Số xu..." 
-                                class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500">
-                            <span class="text-xs font-semibold text-amber-600 whitespace-nowrap"><i class="fa-solid fa-coins mr-1"></i> (0 = Free)</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="content-input-container" class="space-y-4">
-                    <!-- Dynamic fields loaded based on story type -->
+                <div id="chapter-list" class="divide-y">
+                    <!-- Dynamic Chapters -->
                 </div>
             </div>
         </section>
 
-        <!-- TAB 3: TRANG CÁ NHÂN (PROFILE) -->
-        <section id="tab-profile" class="hidden space-y-6">
-            <!-- User Info Dashboard -->
-            <div class="bg-gradient-to-r from-amber-500 to-rose-500 rounded-3xl p-6 text-white shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
-                <div class="flex items-center gap-4">
-                    <div class="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-3xl font-bold text-white border border-white/30">
-                        <i class="fa-solid fa-user-gear"></i>
-                    </div>
-                    <div>
-                        <h2 id="profile-user-name" class="text-2xl font-bold">Khách</h2>
-                        <p id="profile-user-role" class="text-xs text-amber-100 mt-1">Đang duyệt với quyền Khách</p>
-                    </div>
-                </div>
-
-                <div class="flex flex-wrap gap-3 text-center">
-                    <div class="bg-white/10 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/20 min-w-[90px]">
-                        <span id="profile-coin-count" class="block text-xl font-extrabold">0</span>
-                        <span class="text-[10px] text-amber-100 uppercase">Xu Trong Ví</span>
-                    </div>
-                    
-                    <!-- Earnings & Revenue Section -->
-                    <div class="bg-white/20 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/30 min-w-[130px] flex flex-col justify-between">
-                        <div>
-                            <span id="profile-earnings-count" class="block text-xl font-extrabold text-amber-200">0 Xu</span>
-                            <span class="text-[10px] text-amber-100 uppercase">Thu Nhập Tác Phẩm</span>
-                        </div>
-                        <button onclick="claimStoryEarnings()" class="mt-2 px-3 py-1 bg-white text-amber-600 font-bold text-xs rounded-lg shadow hover:bg-amber-50 transition">
-                            <i class="fa-solid fa-hand-holding-dollar mr-1"></i> Rút về ví
-                        </button>
-                    </div>
-
-                    <div class="bg-white/10 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/20 min-w-[90px]">
-                        <span id="profile-created-count" class="block text-xl font-extrabold">0</span>
-                        <span class="text-[10px] text-amber-100 uppercase">Tác Phẩm Đã Tạo</span>
-                    </div>
-                </div>
+        <!-- SECTION: Read Chapter -->
+        <section id="sec-read" class="hidden space-y-6 max-w-3xl mx-auto">
+            <button onclick="backToStory()" class="text-indigo-600 hover:underline flex items-center gap-1">
+                <i class="fa-solid fa-arrow-left"></i> Về chi tiết truyện
+            </button>
+            <div id="chapter-reader" class="bg-white rounded-xl p-6 shadow-sm space-y-6">
+                <!-- Dynamic Content -->
             </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Section 1: Tác phẩm đang sáng tác -->
-                <div class="bg-white dark:bg-slate-800 sepia-card p-6 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm space-y-4">
-                    <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-3">
-                        <h3 class="font-bold text-lg flex items-center gap-2">
-                            <i class="fa-solid fa-feather-pointed text-amber-500"></i> Tác Phẩm Đang Sáng Tác
-                        </h3>
-                        <button onclick="handleCreateNewClick()" class="text-xs text-amber-600 font-semibold hover:underline">+ Tạo Truyện Mới</button>
-                    </div>
-
-                    <div id="profile-my-stories-list" class="space-y-4 max-h-[450px] overflow-y-auto custom-scrollbar">
-                        <!-- Injected My Stories -->
-                    </div>
+            
+            <!-- Comment Section -->
+            <div class="bg-white rounded-xl p-6 shadow-sm space-y-4">
+                <h3 class="font-bold text-lg"><i class="fa-regular fa-comments"></i> Bình luận</h3>
+                <div class="flex gap-2">
+                    <input type="text" id="comment-input" placeholder="Viết bình luận..." class="flex-grow px-3 py-2 border rounded-lg text-sm">
+                    <button onclick="addComment()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700">
+                        Gửi
+                    </button>
                 </div>
-
-                <!-- Section 2: Tác phẩm đã đọc & mở khóa -->
-                <div class="bg-white dark:bg-slate-800 sepia-card p-6 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 shadow-sm space-y-4">
-                    <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-3">
-                        <h3 class="font-bold text-lg flex items-center gap-2">
-                            <i class="fa-solid fa-clock-rotate-left text-amber-500"></i> Truyện Đã Đọc & Mở Khóa
-                        </h3>
-                    </div>
-
-                    <div id="profile-unlocked-list" class="space-y-3 max-h-[450px] overflow-y-auto custom-scrollbar">
-                        <!-- Injected Read/Unlocked Stories -->
-                    </div>
+                <div id="comments-list" class="space-y-3 pt-4 border-t">
+                    <!-- Dynamic Comments -->
                 </div>
             </div>
         </section>
 
-        <!-- TAB 4: CHẾ ĐỘ ĐỌC / NGHE (READER MODE) -->
-        <section id="tab-reader" class="hidden space-y-6">
-            <div class="sticky top-20 z-30 flex flex-wrap items-center justify-between gap-3 bg-white/90 dark:bg-slate-800/90 sepia-card p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 backdrop-blur-md shadow-md">
-                <button onclick="switchTab('library')" class="text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-amber-500 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700">
-                    <i class="fa-solid fa-arrow-left"></i> Trở về Thư viện
-                </button>
-
-                <div class="flex items-center gap-3">
-                    <div id="text-controls-group" class="flex items-center gap-2">
-                        <div class="flex items-center gap-1 border border-slate-200 dark:border-slate-700 rounded-lg p-1">
-                            <button onclick="changeFontSize(-2)" class="w-7 h-7 text-xs rounded hover:bg-slate-100 dark:hover:bg-slate-700 font-bold">A-</button>
-                            <span id="font-size-label" class="text-xs font-mono px-1">18px</span>
-                            <button onclick="changeFontSize(2)" class="w-7 h-7 text-xs rounded hover:bg-slate-100 dark:hover:bg-slate-700 font-bold">A+</button>
-                        </div>
-
-                        <select id="font-family-select" onchange="changeFontFamily(this.value)" class="text-xs px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-transparent">
-                            <option value="font-serif-custom">Lora (Serif)</option>
-                            <option value="font-merriweather">Merriweather</option>
-                            <option value="font-sans">Inter (Sans)</option>
-                        </select>
-                    </div>
-
-                    <select id="reader-chapter-select" onchange="loadChapterForReading(this.value)" class="text-xs px-2 py-1.5 rounded-lg border border-amber-500/50 bg-amber-50 dark:bg-slate-700 text-amber-900 dark:text-amber-100 font-semibold max-w-[150px] sm:max-w-xs truncate">
-                        <!-- Chapters injected -->
-                    </select>
+        <!-- SECTION: Admin Panel -->
+        <section id="sec-admin" class="hidden space-y-6">
+            <h2 class="text-2xl font-bold text-red-600 flex items-center gap-2">
+                <i class="fa-solid fa-user-shield"></i> Trang Quản Trị Viên (Admin)
+            </h2>
+            <div class="bg-white rounded-xl p-6 shadow-sm space-y-4">
+                <h3 class="font-bold text-lg border-b pb-2">Quản lý Thành viên</h3>
+                <div id="admin-user-list" class="divide-y">
+                    <!-- Dynamic User List for Admin -->
                 </div>
             </div>
-
-            <article class="max-w-3xl mx-auto bg-white dark:bg-slate-800 sepia-card p-6 sm:p-10 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 shadow-lg space-y-8">
-                <header class="text-center border-b border-slate-200 dark:border-slate-700 pb-6 space-y-3">
-                    <div class="flex justify-center items-center gap-2">
-                        <span id="reader-format-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-100 text-amber-700">Chữ</span>
-                        <p id="reader-story-title" class="text-xs font-bold uppercase tracking-wider text-amber-500">Tên Truyện</p>
-                    </div>
-                    <h1 id="reader-chapter-title" class="text-2xl sm:text-3xl font-bold">Tên Chương</h1>
-                    
-                    <!-- Stats Bar in Reader -->
-                    <div class="flex items-center justify-center gap-4 text-xs text-slate-400 pt-1">
-                        <span id="reader-meta-author">Tác giả: Admin</span>
-                        <span>•</span>
-                        <span><i class="fa-solid fa-eye text-amber-500 mr-1"></i><span id="reader-views-count">0</span> lượt xem</span>
-                        <span>•</span>
-                        <button id="reader-like-btn" onclick="toggleLikeActiveStory()" class="hover:text-rose-500 font-semibold transition flex items-center gap-1">
-                            <i id="reader-like-icon" class="fa-regular fa-heart text-rose-500"></i>
-                            <span id="reader-likes-count">0</span> Tim
-                        </button>
-                    </div>
-                </header>
-
-                <div id="reader-body-container">
-                    <!-- Injected Content -->
-                </div>
-
-                <!-- Donate / Tặng Xu Section -->
-                <div id="reader-donate-box" class="p-5 rounded-2xl bg-amber-50/60 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 text-center space-y-3">
-                    <p class="text-xs font-bold text-amber-800 dark:text-amber-200"><i class="fa-solid fa-gift text-rose-500 mr-1"></i> Yêu thích tác phẩm này? Tặng Xu cho Tác Giả nhé!</p>
-                    <div class="flex flex-wrap justify-center gap-2">
-                        <button onclick="donateCoinsToAuthor(10)" class="px-3 py-1.5 text-xs font-bold bg-amber-500 text-white rounded-xl hover:bg-amber-600 transition shadow-sm">+10 Xu</button>
-                        <button onclick="donateCoinsToAuthor(20)" class="px-3 py-1.5 text-xs font-bold bg-amber-500 text-white rounded-xl hover:bg-amber-600 transition shadow-sm">+20 Xu</button>
-                        <button onclick="donateCoinsToAuthor(50)" class="px-3 py-1.5 text-xs font-bold bg-rose-500 text-white rounded-xl hover:bg-rose-600 transition shadow-sm">+50 Xu</button>
-                        <button onclick="donateCoinsToAuthor(100)" class="px-3 py-1.5 text-xs font-bold bg-gradient-to-r from-amber-500 to-rose-500 text-white rounded-xl hover:opacity-90 transition shadow-sm">+100 Xu</button>
-                    </div>
-                </div>
-
-                <footer class="flex justify-between items-center pt-6 border-t border-slate-200 dark:border-slate-700">
-                    <button id="btn-prev-chap" onclick="navigateChapter(-1)" class="px-4 py-2 text-sm font-medium rounded-xl border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition flex items-center gap-2">
-                        <i class="fa-solid fa-chevron-left"></i> Chương Trước
-                    </button>
-                    <button id="btn-next-chap" onclick="navigateChapter(1)" class="px-4 py-2 text-sm font-medium rounded-xl bg-amber-500 hover:bg-amber-600 text-white shadow-md transition flex items-center gap-2">
-                        Chương Sau <i class="fa-solid fa-chevron-right"></i>
-                    </button>
-                </footer>
-
-                <!-- Comments & Discussions Section -->
-                <section class="pt-8 border-t border-slate-200 dark:border-slate-700 space-y-4">
-                    <h3 class="font-bold text-lg flex items-center gap-2">
-                        <i class="fa-solid fa-comments text-amber-500"></i> Bình Luận Chương
-                    </h3>
-
-                    <!-- Comment Input Box -->
-                    <div class="space-y-2">
-                        <textarea id="comment-input" rows="3" placeholder="Viết cảm nghĩ của bạn về chương này..." 
-                            class="w-full p-3 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
-                        <div class="flex justify-end">
-                            <button onclick="postComment()" class="px-4 py-2 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white rounded-xl shadow-md transition flex items-center gap-1.5">
-                                <i class="fa-solid fa-paper-plane"></i> Gửi Bình Luận
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Comments List Container -->
-                    <div id="comments-list" class="space-y-3 pt-2">
-                        <!-- Dynamic Comments Injected -->
-                    </div>
-                </section>
-            </article>
         </section>
 
     </main>
 
-    <!-- Modal: Chỉnh Sửa Thông Tin Tác Phẩm -->
-    <div id="edit-story-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-800 sepia-card rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4">
-            <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-3">
-                <h3 class="font-bold text-lg flex items-center gap-2">
-                    <i class="fa-solid fa-pen-to-square text-amber-500"></i> Chỉnh Sửa Tác Phẩm
-                </h3>
-                <button onclick="closeModal('edit-story-modal')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+    <!-- MODAL: Auth (Login/Register) -->
+    <div id="modal-auth" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl p-6 max-w-sm w-full space-y-4 shadow-xl">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 id="auth-title" class="font-bold text-lg">Đăng Nhập</h3>
+                <button onclick="closeModal('modal-auth')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
             </div>
+            <form id="auth-form" onsubmit="handleAuth(event)" class="space-y-3">
+                <input type="text" id="auth-username" placeholder="Tên đăng nhập" required class="w-full px-3 py-2 border rounded-lg text-sm">
+                <input type="password" id="auth-password" placeholder="Mật khẩu" required class="w-full px-3 py-2 border rounded-lg text-sm">
+                <button type="submit" class="w-full py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700">
+                    Xác nhận
+                </button>
+            </form>
+            <p class="text-xs text-center text-slate-500">
+                <span id="auth-toggle-text">Chưa có tài khoản?</span>
+                <button onclick="toggleAuthMode()" class="text-indigo-600 font-semibold ml-1" id="auth-toggle-btn">Đăng ký</button>
+            </p>
+        </div>
+    </div>
 
-            <form onsubmit="handleSaveEditStory(event)" class="space-y-4">
-                <input type="hidden" id="edit-story-id">
-
+    <!-- MODAL: Create Story -->
+    <div id="modal-story" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl p-6 max-w-md w-full space-y-4 shadow-xl">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="font-bold text-lg">Đăng Truyện Mới</h3>
+                <button onclick="closeModal('modal-story')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="handleCreateStory(event)" class="space-y-3">
+                <input type="text" id="story-title" placeholder="Tên truyện" required class="w-full px-3 py-2 border rounded-lg text-sm">
+                <textarea id="story-desc" placeholder="Mô tả ngắn..." required class="w-full px-3 py-2 border rounded-lg text-sm h-24"></textarea>
                 <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Tên Tác Phẩm</label>
-                    <input type="text" id="edit-story-title" required 
-                        class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    <label class="block text-xs text-slate-500 mb-1">Ảnh nền (Bìa truyện):</label>
+                    <input type="file" id="story-cover" accept="image/*" class="w-full text-sm">
                 </div>
-
-                <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Loại Hình Sáng Tác</label>
-                    <select id="edit-story-type" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold">
-                        <option value="TEXT">📖 Truyện Chữ (Văn bản)</option>
-                        <option value="COMIC">🎨 Truyện Tranh (Hình ảnh)</option>
-                        <option value="AUDIO">🎧 Audio Book (Âm thanh)</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Thể Loại</label>
-                    <select id="edit-story-genre" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500">
-                        <option value="Đam Mỹ">Đam Mỹ</option>
-                        <option value="Ngôn Tình">Ngôn Tình</option>
-                        <option value="Tiên Hiệp">Tiên Hiệp</option>
-                        <option value="Kỳ Ảo">Kỳ Ảo</option>
-                        <option value="Trinh Thám">Trinh Thám</option>
-                        <option value="Đời Thường">Đời Thường</option>
-                        <option value="Khoa Học Viễn Tưởng">Khoa Học Viễn Tưởng</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Tóm Tắt Ngắn</label>
-                    <textarea id="edit-story-desc" rows="3" 
-                        class="w-full p-3 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
-                </div>
-
-                <div class="flex justify-between items-center pt-2">
-                    <button type="button" onclick="deleteStoryFromModal()" class="px-3 py-2 text-xs font-semibold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition">
-                        <i class="fa-solid fa-trash mr-1"></i> Xóa Tác Phẩm
-                    </button>
-                    <div class="flex gap-2">
-                        <button type="button" onclick="closeModal('edit-story-modal')" class="px-4 py-2 text-sm font-medium rounded-xl border border-slate-300 dark:border-slate-600">Hủy</button>
-                        <button type="submit" class="px-4 py-2 text-sm font-medium rounded-xl bg-amber-500 text-white shadow-md hover:bg-amber-600">Lưu Thay Đổi</button>
-                    </div>
-                </div>
+                <button type="submit" class="w-full py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700">
+                    Tạo Truyện
+                </button>
             </form>
         </div>
     </div>
 
-    <!-- Modal: Chỉnh Sửa & Xóa Chương Truyện -->
-    <div id="edit-chapter-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-800 sepia-card rounded-3xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4">
-            <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-3">
-                <h3 class="font-bold text-lg flex items-center gap-2">
-                    <i class="fa-solid fa-pen-nib text-amber-500"></i> Chỉnh Sửa Nội Dung Chương
-                </h3>
-                <button onclick="closeModal('edit-chapter-modal')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+    <!-- MODAL: Create Chapter -->
+    <div id="modal-chapter" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl p-6 max-w-lg w-full space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="font-bold text-lg">Thêm Chương Mới</h3>
+                <button onclick="closeModal('modal-chapter')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
             </div>
-
-            <form onsubmit="handleSaveEditChapter(event)" class="space-y-4">
-                <input type="hidden" id="edit-chap-story-id">
-                <input type="hidden" id="edit-chap-id">
-
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div class="sm:col-span-2">
-                        <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Tên / Số Chương</label>
-                        <input type="text" id="edit-chap-title" required 
-                            class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Mở Khóa (Xu)</label>
-                        <input type="number" id="edit-chap-coin" min="0" value="0" 
-                            class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500">
-                    </div>
+            <form onsubmit="handleCreateChapter(event)" class="space-y-3">
+                <input type="text" id="chap-title" placeholder="Tên chương" required class="w-full px-3 py-2 border rounded-lg text-sm">
+                <div class="flex gap-4 text-sm">
+                    <label class="flex items-center gap-1"><input type="radio" name="chap-type" value="text" checked onclick="toggleChapInput('text')"> Chữ</label>
+                    <label class="flex items-center gap-1"><input type="radio" name="chap-type" value="comic" onclick="toggleChapInput('comic')"> Tranh</label>
+                    <label class="flex items-center gap-1"><input type="radio" name="chap-type" value="audio" onclick="toggleChapInput('audio')"> Âm thanh</label>
+                </div>
+                <input type="number" id="chap-price" placeholder="Giá Xu (0 = Miễn phí)" min="0" value="0" class="w-full px-3 py-2 border rounded-lg text-sm">
+                
+                <div id="input-text-container">
+                    <textarea id="chap-content-text" placeholder="Nội dung chương..." class="w-full px-3 py-2 border rounded-lg text-sm h-40"></textarea>
+                </div>
+                <div id="input-file-container" class="hidden">
+                    <input type="file" id="chap-content-file" multiple class="w-full text-sm">
                 </div>
 
-                <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Nội Dung Chương</label>
-                    <textarea id="edit-chap-content" rows="12" required 
-                        class="w-full p-3 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500 font-serif-custom leading-relaxed custom-scrollbar"></textarea>
-                </div>
-
-                <div class="flex justify-between items-center pt-2">
-                    <button type="button" onclick="deleteChapterFromModal()" class="px-3 py-2 text-xs font-semibold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition">
-                        <i class="fa-solid fa-trash mr-1"></i> Xóa Chương Này
-                    </button>
-                    <div class="flex gap-2">
-                        <button type="button" onclick="closeModal('edit-chapter-modal')" class="px-4 py-2 text-sm font-medium rounded-xl border border-slate-300 dark:border-slate-600">Hủy</button>
-                        <button type="submit" class="px-4 py-2 text-sm font-medium rounded-xl bg-amber-500 text-white shadow-md hover:bg-amber-600">Cập Nhật Chương</button>
-                    </div>
-                </div>
+                <button type="submit" class="w-full py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700">
+                    Đăng Chương
+                </button>
             </form>
         </div>
     </div>
 
-    <!-- Modal: Xem Quảng Cáo TikTok -->
-    <div id="ad-modal" class="fixed inset-0 z-50 hidden bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-800 sepia-card rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 text-center space-y-5">
-            <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-tr from-rose-500 to-amber-500 flex items-center justify-center text-white text-2xl shadow-lg shadow-rose-500/30">
-                <i class="fa-brands fa-tiktok"></i>
-            </div>
-            
-            <div class="space-y-1">
-                <h3 class="font-bold text-lg">Xem Quảng Cáo Nhận Xu</h3>
-                <p class="text-xs text-slate-500 dark:text-slate-400">Xem video tài trợ để nhận ngay <strong class="text-amber-500">+10 Xu</strong> vào ví!</p>
-            </div>
-
-            <div class="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 text-xs text-amber-800 dark:text-amber-200 space-y-2">
-                <p><i class="fa-solid fa-circle-info mr-1"></i> Bấm nút bên dưới để mở video TikTok tài trợ. Xu sẽ tự động được cộng sau khi bạn mở video!</p>
-            </div>
-
-            <div class="flex flex-col gap-2 pt-2">
-                <a href="https://www.tiktok.com/@tneu04/photo/7672427534130138386?is_from_webapp=1&sender_device=pc&web_id=7409691464387102215" 
-                   target="_blank" onclick="claimAdReward()" 
-                   class="w-full py-3 bg-gradient-to-r from-rose-500 to-amber-500 hover:opacity-90 text-white font-bold rounded-xl text-sm shadow-md transition flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-play"></i> Xem Video TikTok & Nhận Xu
-                </a>
-                <button onclick="closeModal('ad-modal')" class="py-2 text-xs text-slate-400 hover:underline">Đóng</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal: Tạo Truyện Mới -->
-    <div id="create-story-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-800 sepia-card rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4">
-            <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-3">
-                <h3 class="font-bold text-lg flex items-center gap-2">
-                    <i class="fa-solid fa-plus-circle text-amber-500"></i> Tạo Tác Phẩm Mới
-                </h3>
-                <button onclick="closeModal('create-story-modal')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-
-            <form onsubmit="handleCreateStory(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Loại Hình Sáng Tác</label>
-                    <select id="new-story-type" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500 font-bold">
-                        <option value="TEXT">📖 Truyện Chữ (Văn bản)</option>
-                        <option value="COMIC">🎨 Truyện Tranh (Hình ảnh)</option>
-                        <option value="AUDIO">🎧 Audio Book (Âm thanh)</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Tên Tác Phẩm</label>
-                    <input type="text" id="new-story-title" required placeholder="VD: Ánh Dương Mùa Hạ" 
-                        class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Thể Loại</label>
-                    <select id="new-story-genre" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500">
-                        <option value="Đam Mỹ">Đam Mỹ</option>
-                        <option value="Ngôn Tình">Ngôn Tình</option>
-                        <option value="Tiên Hiệp">Tiên Hiệp</option>
-                        <option value="Kỳ Ảo">Kỳ Ảo</option>
-                        <option value="Trinh Thám">Trinh Thám</option>
-                        <option value="Đời Thường">Đời Thường</option>
-                        <option value="Khoa Học Viễn Tưởng">Khoa Học Viễn Tưởng</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Tóm Tắt Ngắn</label>
-                    <textarea id="new-story-desc" rows="3" placeholder="Mô tả tóm tắt nội dung câu chuyện..." 
-                        class="w-full p-3 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
-                </div>
-
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" onclick="closeModal('create-story-modal')" class="px-4 py-2 text-sm font-medium rounded-xl border border-slate-300 dark:border-slate-600">Hủy</button>
-                    <button type="submit" class="px-4 py-2 text-sm font-medium rounded-xl bg-amber-500 text-white shadow-md hover:bg-amber-600">Tạo Tác Phẩm</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal: Đăng Nhập / Đăng Ký -->
-    <div id="auth-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-800 sepia-card rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4">
-            <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-3">
-                <h3 id="auth-modal-title" class="font-bold text-lg flex items-center gap-2">
-                    <i class="fa-solid fa-user-lock text-amber-500"></i> Đăng Nhập
-                </h3>
-                <button onclick="closeModal('auth-modal')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-
-            <form onsubmit="handleAuthSubmit(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Tên Đăng Nhập</label>
-                    <input type="text" id="auth-username" required placeholder="Tên tài khoản..." 
-                        class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Mật Khẩu</label>
-                    <input type="password" id="auth-password" required placeholder="Mật khẩu..." 
-                        class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500">
-                </div>
-
-                <div class="flex justify-between items-center pt-2">
-                    <button type="button" onclick="toggleAuthMode()" id="auth-toggle-btn" class="text-xs text-amber-600 hover:underline">Chưa có tài khoản? Đăng ký</button>
-                    <button type="submit" id="auth-submit-btn" class="px-4 py-2 text-sm font-medium rounded-xl bg-amber-500 text-white shadow-md hover:bg-amber-600">Đăng Nhập</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- JavaScript Application Logic -->
+    <!-- SCRIPT LOGIC -->
     <script>
-        const defaultStories = [
-            {
-                id: 'story-1',
-                title: 'Gió Thoảng Mùa Hạ',
-                author: 'Thanh Vũ',
-                authorUsername: 'thanhvu',
-                type: 'TEXT',
-                genre: 'Đam Mỹ',
-                desc: 'Câu chuyện thanh xuân nhẹ nhàng về tình cảm tuổi học trò giữa hai người bạn thân.',
-                views: 1,
-                viewedBy: ['minhtriet'],
-                likes: 1,
-                likedBy: ['minhtriet'],
-                earnings: 0,
-                chapters: [
-                    {
-                        id: 'c1',
-                        title: 'Chương 1: Chuyện Cũ Năm Ấy',
-                        coinCost: 0,
-                        content: 'Nắng chiều tháng Sáu trải dài trên dãy hành lang lớp học. Tiếng ve kêu râm ran ngoài vòm lá phượng vĩ đỏ rực...\n\nNhật Minh tựa lưng vào cửa sổ, nhìn người bạn ngồi bàn bên.',
-                        comments: [
-                            { id: 'cm1', author: 'Minh Triết', text: 'Truyện hay quá tác giả ơi! Hóng chương tiếp theo.', time: '10 phút trước' }
-                        ]
-                    },
-                    {
-                        id: 'c2',
-                        title: 'Chương 2: Bí Mật Trong Lòng (Khóa 5 Xu)',
-                        coinCost: 5,
-                        content: 'Đây là nội dung chương bí mật chỉ người dùng mua bằng xu mới đọc được!\n\nNhật Minh khẽ mở cuốn sổ tay và viết lên những dòng tâm sự giữ kín bấy lâu...',
-                        comments: []
-                    }
-                ]
-            }
-        ];
-
-        let stories = JSON.parse(localStorage.getItem('story_studio_data')) || defaultStories;
-        let users = JSON.parse(localStorage.getItem('story_studio_users')) || [
-            { username: 'minhtriet', password: '123', name: 'Minh Triết', coins: 50, unlockedChapters: [] },
-            { username: 'thanhvu', password: '123', name: 'Thanh Vũ', coins: 100, unlockedChapters: [] }
-        ];
-        let currentUser = JSON.parse(localStorage.getItem('story_studio_current_user')) || null;
-        let guestCoins = parseInt(localStorage.getItem('story_studio_guest_coins')) || 0;
-        let guestUnlockedChapters = JSON.parse(localStorage.getItem('story_studio_guest_unlocked')) || [];
-        let guestLikedStories = JSON.parse(localStorage.getItem('story_studio_guest_liked')) || [];
-        let guestViewedStories = JSON.parse(localStorage.getItem('story_studio_guest_viewed')) || [];
-
+        // State management
+        let db = {
+            users: JSON.parse(localStorage.getItem('thn_users')) || [],
+            stories: JSON.parse(localStorage.getItem('thn_stories')) || []
+        };
+        let currentUser = JSON.parse(localStorage.getItem('thn_currentUser')) || null;
         let activeStoryId = null;
-        let activeChapterIndex = 0;
-        let currentReaderFontSize = 18;
-        let isRegisterMode = false;
+        let activeChapterId = null;
+        let isAuthLogin = true;
 
-        let uploadedComicImages = [];
-        let uploadedAudioData = '';
-
-        document.addEventListener('DOMContentLoaded', () => {
-            renderUserAuthArea();
-            updateCoinDisplay();
-            renderLibrary();
-            updateWriterStorySelect();
-        });
+        // Init Admin Account if not exists
+        (function initAdmin() {
+            const adminExists = db.users.find(u => u.username === 'quantrithuylinh');
+            if (!adminExists) {
+                db.users.push({
+                    username: 'quantrithuylinh',
+                    password: 'Thuylinh99@#',
+                    coins: 99999,
+                    role: 'admin',
+                    banned: false
+                });
+                saveData();
+            }
+        })();
 
         function saveData() {
-            localStorage.setItem('story_studio_data', JSON.stringify(stories));
-            localStorage.setItem('story_studio_users', JSON.stringify(users));
-            localStorage.setItem('story_studio_current_user', JSON.stringify(currentUser));
-            localStorage.setItem('story_studio_guest_coins', guestCoins);
-            localStorage.setItem('story_studio_guest_unlocked', JSON.stringify(guestUnlockedChapters));
-            localStorage.setItem('story_studio_guest_liked', JSON.stringify(guestLikedStories));
-            localStorage.setItem('story_studio_guest_viewed', JSON.stringify(guestViewedStories));
+            localStorage.setItem('thn_users', JSON.stringify(db.users));
+            localStorage.setItem('thn_stories', JSON.stringify(db.stories));
+            localStorage.setItem('thn_currentUser', JSON.stringify(currentUser));
         }
 
-        function getCoins() {
-            return currentUser ? (currentUser.coins || 0) : guestCoins;
-        }
-
-        function setCoins(amount) {
-            if (currentUser) {
-                currentUser.coins = amount;
-                const userObj = users.find(u => u.username === currentUser.username);
-                if (userObj) userObj.coins = amount;
-            } else {
-                guestCoins = amount;
-            }
-            saveData();
-            updateCoinDisplay();
-        }
-
-        function updateCoinDisplay() {
-            document.getElementById('user-coin-balance').innerText = `${getCoins()} Xu`;
-        }
-
-        function openAdModal() {
-            document.getElementById('ad-modal').classList.remove('hidden');
-        }
-
-        function claimAdReward() {
-            setCoins(getCoins() + 10);
-            alert("Chúc mừng! Bạn đã nhận được +10 Xu!");
-            closeModal('ad-modal');
-
-            if (!document.getElementById('tab-reader').classList.contains('hidden')) {
-                loadChapterForReading(activeChapterIndex);
-            }
-            if (!document.getElementById('tab-profile').classList.contains('hidden')) {
-                renderProfileTab();
-            }
-        }
-
-        function setTheme(theme) {
-            const body = document.getElementById('app-body');
-            body.classList.remove('dark', 'theme-sepia');
-            if (theme === 'dark') body.classList.add('dark');
-            else if (theme === 'sepia') body.classList.add('theme-sepia');
-        }
-
-        function switchTab(tabName) {
-            document.getElementById('tab-library').classList.add('hidden');
-            document.getElementById('tab-writer').classList.add('hidden');
-            document.getElementById('tab-profile').classList.add('hidden');
-            document.getElementById('tab-reader').classList.add('hidden');
-
-            document.getElementById('nav-library').className = "px-3 py-1.5 rounded-xl text-sm font-medium transition text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800";
-            document.getElementById('nav-writer').className = "px-3 py-1.5 rounded-xl text-sm font-medium transition text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800";
-            document.getElementById('nav-profile').className = "px-3 py-1.5 rounded-xl text-sm font-medium transition text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800";
-
-            if (tabName === 'library') {
-                document.getElementById('tab-library').classList.remove('hidden');
-                document.getElementById('nav-library').className = "px-3 py-1.5 rounded-xl text-sm font-medium transition bg-amber-500 text-white shadow-md shadow-amber-500/20";
-                renderLibrary();
-            } else if (tabName === 'writer') {
-                if (!currentUser) {
-                    alert("Bạn cần Đăng Nhập để đăng truyện!");
-                    openAuthModal();
-                    return;
-                }
-                document.getElementById('tab-writer').classList.remove('hidden');
-                document.getElementById('nav-writer').className = "px-3 py-1.5 rounded-xl text-sm font-medium transition bg-amber-500 text-white shadow-md shadow-amber-500/20";
-                updateWriterStorySelect();
-            } else if (tabName === 'profile') {
-                document.getElementById('tab-profile').classList.remove('hidden');
-                document.getElementById('nav-profile').className = "px-3 py-1.5 rounded-xl text-sm font-medium transition bg-amber-500 text-white shadow-md shadow-amber-500/20";
-                renderProfileTab();
-            } else if (tabName === 'reader') {
-                document.getElementById('tab-reader').classList.remove('hidden');
-            }
-        }
-
-        // Donate / Tặng Xu Logic
-        function donateCoinsToAuthor(amount) {
-            const story = stories.find(s => s.id === activeStoryId);
-            if (!story) return;
-
-            if (currentUser && currentUser.username === story.authorUsername) {
-                alert("Bạn không thể tự tặng Xu cho chính mình!");
-                return;
-            }
-
-            const currentCoins = getCoins();
-            if (currentCoins < amount) {
-                alert("Số dư Xu không đủ! Hãy xem quảng cáo để nhận thêm Xu.");
-                openAdModal();
-                return;
-            }
-
-            if (confirm(`Xác nhận tặng ${amount} Xu cho tác giả ${story.author}?`)) {
-                setCoins(currentCoins - amount);
-                story.earnings = (story.earnings || 0) + amount;
+        // Check Ban status on reload
+        if (currentUser) {
+            const freshUser = db.users.find(u => u.username === currentUser.username);
+            if (freshUser && freshUser.banned) {
+                alert('Tài khoản của bạn đã bị cấm truy cập hệ thống!');
+                currentUser = null;
                 saveData();
-                alert(`Cảm ơn bạn! Bạn đã tặng ${amount} Xu cho tác giả thành công! ❤️`);
             }
         }
 
-        // Claim Author Revenue / Rút Xu Thu Nhập
-        function claimStoryEarnings() {
-            if (!currentUser) return;
-
-            const myStories = stories.filter(s => s.authorUsername === currentUser.username);
-            let totalEarnings = 0;
-
-            myStories.forEach(story => {
-                totalEarnings += (story.earnings || 0);
-                story.earnings = 0; // reset after claiming
-            });
-
-            if (totalEarnings === 0) {
-                alert("Hiện tại chưa có Xu thu nhập mới để rút!");
-                return;
-            }
-
-            setCoins(getCoins() + totalEarnings);
-            saveData();
-            alert(`Chúc mừng! Bạn đã rút thành công ${totalEarnings} Xu thu nhập vào ví cá nhân!`);
-            renderProfileTab();
-        }
-
-        // Comments Section Logic
-        function renderComments(comments) {
-            const container = document.getElementById('comments-list');
-            container.innerHTML = '';
-
-            if (!comments || comments.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-4">Chưa có bình luận nào. Hãy là người đầu tiên để lại nhận xét!</p>`;
-                return;
-            }
-
-            comments.forEach(cm => {
-                container.innerHTML += `
-                    <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-700/50 border border-slate-200/80 dark:border-slate-700 space-y-1">
-                        <div class="flex justify-between items-center text-xs">
-                            <span class="font-bold text-amber-600 dark:text-amber-400"><i class="fa-solid fa-user-circle mr-1"></i>${cm.author}</span>
-                            <span class="text-[10px] text-slate-400">${cm.time || 'Vừa xong'}</span>
-                        </div>
-                        <p class="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">${cm.text}</p>
+        // Navigation
+        function updateNav() {
+            const nav = document.getElementById('user-nav');
+            if (currentUser) {
+                const freshUser = db.users.find(u => u.username === currentUser.username) || currentUser;
+                nav.innerHTML = `
+                    <div class="flex items-center gap-3 text-sm">
+                        <span class="bg-amber-400 text-slate-900 px-2.5 py-1 rounded-full font-bold flex items-center gap-1">
+                            <i class="fa-solid fa-coins"></i> ${freshUser.coins} Xu
+                        </span>
+                        <button onclick="watchAds()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-2 py-1 rounded text-xs font-bold">+ Nhận Xu</button>
+                        <span class="font-medium">${freshUser.username} ${freshUser.role === 'admin' ? '<span class="text-xs text-red-300 font-bold">(Admin)</span>' : ''}</span>
+                        ${freshUser.role === 'admin' ? '<button onclick="showSection(\'admin\')" class="bg-red-600 text-white px-2 py-1 rounded text-xs">Quản Trị</button>' : ''}
+                        <button onclick="openModal('modal-story')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-2.5 py-1 rounded-lg text-xs">+ Đăng Truyện</button>
+                        <button onclick="logout()" class="text-slate-200 hover:text-white"><i class="fa-solid fa-right-from-bracket"></i></button>
                     </div>
                 `;
-            });
+            } else {
+                nav.innerHTML = `
+                    <button onclick="openAuthModal(true)" class="bg-white text-indigo-700 px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-indigo-50">Đăng Nhập</button>
+                    <button onclick="openAuthModal(false)" class="bg-indigo-600 text-white border border-white/30 px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-indigo-500">Đăng Ký</button>
+                `;
+            }
         }
 
-        function postComment() {
-            const text = document.getElementById('comment-input').value.trim();
-            if (!text) {
-                alert("Vui lòng viết nội dung bình luận!");
+        function showSection(sectionId) {
+            ['sec-home', 'sec-detail', 'sec-read', 'sec-admin'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById('sec-' + sectionId).classList.remove('hidden');
+            if (sectionId === 'home') renderStories();
+            if (sectionId === 'admin') renderAdminPanel();
+        }
+
+        // Render Stories Home
+        function renderStories() {
+            const grid = document.getElementById('story-grid');
+            const sortBy = document.getElementById('sort-filter').value;
+            let stories = [...db.stories];
+
+            if (sortBy === 'newest') stories.reverse();
+            if (sortBy === 'views') stories.sort((a, b) => b.views - a.views);
+            if (sortBy === 'likes') stories.sort((a, b) => b.likes.length - a.likes.length);
+
+            if (stories.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-10 text-slate-400">Chưa có truyện nào. Hãy đăng truyện ngay!</div>`;
                 return;
             }
 
-            const story = stories.find(s => s.id === activeStoryId);
-            if (!story) return;
-
-            const chapter = story.chapters[activeChapterIndex];
-            if (!chapter) return;
-
-            if (!chapter.comments) chapter.comments = [];
-
-            const authorName = currentUser ? currentUser.name : "Khách Ẩn Danh";
-            chapter.comments.unshift({
-                id: 'cm-' + Date.now(),
-                author: authorName,
-                text,
-                time: 'Vừa xong'
-            });
-
-            saveData();
-            document.getElementById('comment-input').value = '';
-            renderComments(chapter.comments);
-        }
-
-        // View Count Handler (One Account/Device = 1 View)
-        function registerStoryView(story) {
-            if (!story.viewedBy) story.viewedBy = [];
-
-            let hasViewed = false;
-            if (currentUser) {
-                hasViewed = story.viewedBy.includes(currentUser.username);
-            } else {
-                hasViewed = guestViewedStories.includes(story.id);
-            }
-
-            if (!hasViewed) {
-                story.views = (story.views || 0) + 1;
-
-                if (currentUser) {
-                    story.viewedBy.push(currentUser.username);
-                } else {
-                    guestViewedStories.push(story.id);
-                }
-                saveData();
-            }
-        }
-
-        // Like / Favorite Helper Function
-        function isStoryLiked(storyId) {
-            const story = stories.find(s => s.id === storyId);
-            if (!story) return false;
-
-            if (currentUser) {
-                return (story.likedBy || []).includes(currentUser.username);
-            } else {
-                return guestLikedStories.includes(storyId);
-            }
-        }
-
-        function toggleLikeStory(storyId, event) {
-            if (event) event.stopPropagation();
-            const story = stories.find(s => s.id === storyId);
-            if (!story) return;
-
-            if (!story.likedBy) story.likedBy = [];
-            if (!story.likes) story.likes = 0;
-
-            const liked = isStoryLiked(storyId);
-
-            if (currentUser) {
-                if (liked) {
-                    story.likedBy = story.likedBy.filter(u => u !== currentUser.username);
-                    story.likes = Math.max(0, story.likes - 1);
-                } else {
-                    story.likedBy.push(currentUser.username);
-                    story.likes += 1;
-                }
-            } else {
-                if (liked) {
-                    guestLikedStories = guestLikedStories.filter(id => id !== storyId);
-                    story.likes = Math.max(0, story.likes - 1);
-                } else {
-                    guestLikedStories.push(storyId);
-                    story.likes += 1;
-                }
-            }
-
-            saveData();
-            renderLibrary();
-
-            if (activeStoryId === storyId && !document.getElementById('tab-reader').classList.contains('hidden')) {
-                updateReaderLikeUI();
-            }
-        }
-
-        function toggleLikeActiveStory() {
-            if (activeStoryId) {
-                toggleLikeStory(activeStoryId);
-            }
-        }
-
-        function updateReaderLikeUI() {
-            const story = stories.find(s => s.id === activeStoryId);
-            if (!story) return;
-
-            const liked = isStoryLiked(activeStoryId);
-            document.getElementById('reader-likes-count').innerText = story.likes || 0;
-
-            const icon = document.getElementById('reader-like-icon');
-            if (liked) {
-                icon.className = "fa-solid fa-heart text-rose-500";
-            } else {
-                icon.className = "fa-regular fa-heart text-slate-400";
-            }
-        }
-
-        // Profile Tab Renderer
-        function renderProfileTab() {
-            document.getElementById('profile-user-name').innerText = currentUser ? currentUser.name : "Tài Khoản Khách";
-            document.getElementById('profile-user-role').innerText = currentUser ? `@${currentUser.username} • Tác giả / Độc giả` : "Đang duyệt với quyền Khách";
-            document.getElementById('profile-coin-count').innerText = getCoins();
-
-            const myStories = currentUser ? stories.filter(s => s.authorUsername === currentUser.username) : [];
-            document.getElementById('profile-created-count').innerText = myStories.length;
-
-            let totalEarnings = 0;
-            myStories.forEach(s => totalEarnings += (s.earnings || 0));
-            document.getElementById('profile-earnings-count').innerText = `${totalEarnings} Xu`;
-
-            const myStoriesContainer = document.getElementById('profile-my-stories-list');
-            myStoriesContainer.innerHTML = '';
-
-            if (myStories.length === 0) {
-                myStoriesContainer.innerHTML = `<p class="text-xs text-slate-400 py-4 text-center">Bạn chưa tạo tác phẩm nào.</p>`;
-            } else {
-                myStories.forEach(story => {
-                    let chaptersHtml = '';
-                    if (story.chapters && story.chapters.length > 0) {
-                        story.chapters.forEach((chap, cIdx) => {
-                            chaptersHtml += `
-                                <div class="flex items-center justify-between text-xs py-1.5 px-2.5 rounded-lg bg-slate-100 dark:bg-slate-700/50">
-                                    <span class="truncate max-w-[160px] font-medium">${chap.title}</span>
-                                    <div class="flex gap-2">
-                                        <button onclick="openEditChapterModal('${story.id}', '${chap.id}')" class="text-amber-600 hover:underline font-bold">
-                                            <i class="fa-solid fa-pen-to-square mr-0.5"></i> Sửa
-                                        </button>
-                                        <button onclick="deleteChapter('${story.id}', '${chap.id}')" class="text-rose-500 hover:underline font-bold">
-                                            <i class="fa-solid fa-trash mr-0.5"></i> Xóa
-                                        </button>
-                                    </div>
-                                </div>
-                            `;
-                        });
-                    } else {
-                        chaptersHtml = `<p class="text-[11px] text-slate-400 italic">Chưa có chương nào.</p>`;
-                    }
-
-                    myStoriesContainer.innerHTML += `
-                        <div class="p-4 rounded-2xl border border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-700/40 space-y-3">
-                            <div class="flex items-center justify-between gap-3">
-                                <div>
-                                    <h4 class="font-bold text-sm text-slate-800 dark:text-slate-100 line-clamp-1">${story.title}</h4>
-                                    <p class="text-[11px] text-slate-400 mt-0.5">${story.genre} • 👁️ ${story.views || 0} • ❤️ ${story.likes || 0} • 💰 Tích lũy: ${story.earnings || 0} Xu</p>
-                                </div>
-                                <div class="flex gap-1.5">
-                                    <button onclick="openEditStoryModal('${story.id}')" class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 hover:bg-amber-200">
-                                        <i class="fa-solid fa-pen"></i> Sửa
-                                    </button>
-                                    <button onclick="openWriterForStory('${story.id}')" class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 hover:bg-blue-200">
-                                        + Chương
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="space-y-1.5 pt-2 border-t border-slate-200 dark:border-slate-600">
-                                <p class="text-[10px] uppercase font-bold text-slate-400">Danh sách chương (${story.chapters.length}):</p>
-                                <div class="space-y-1 max-h-36 overflow-y-auto custom-scrollbar">
-                                    ${chaptersHtml}
-                                </div>
-                            </div>
+            grid.innerHTML = stories.map(s => `
+                <div class="bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition cursor-pointer flex flex-col justify-between" onclick="viewStory('${s.id}')">
+                    <img src="${s.cover || 'https://via.placeholder.com/300x400?text=No+Cover'}" class="w-full h-48 object-cover">
+                    <div class="p-3 flex-grow flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-bold text-slate-800 line-clamp-1">${s.title}</h3>
+                            <p class="text-xs text-slate-500 line-clamp-2 mt-1">${s.desc}</p>
                         </div>
-                    `;
-                });
-            }
-
-            const unlockedList = currentUser ? (currentUser.unlockedChapters || []) : guestUnlockedChapters;
-            const unlockedContainer = document.getElementById('profile-unlocked-list');
-            unlockedContainer.innerHTML = '';
-
-            if (unlockedList.length === 0) {
-                unlockedContainer.innerHTML = `<p class="text-xs text-slate-400 py-4 text-center">Chưa mở khóa chương trả phí nào.</p>`;
-            } else {
-                unlockedList.forEach(chapId => {
-                    stories.forEach(story => {
-                        const chap = story.chapters.find(c => c.id === chapId);
-                        if (chap) {
-                            unlockedContainer.innerHTML += `
-                                <div class="p-3.5 rounded-2xl border border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-700/40 flex items-center justify-between gap-3">
-                                    <div>
-                                        <h4 class="font-bold text-sm text-slate-800 dark:text-slate-100 line-clamp-1">${story.title}</h4>
-                                        <p class="text-[11px] text-amber-600 font-medium">${chap.title}</p>
-                                    </div>
-                                    <button onclick="openReader('${story.id}', ${story.chapters.indexOf(chap)})" class="px-3 py-1 text-xs font-semibold rounded-lg bg-amber-500 text-white hover:bg-amber-600">
-                                        Đọc Ngay
-                                    </button>
-                                </div>
-                            `;
-                        }
-                    });
-                });
-            }
+                        <div class="flex justify-between items-center text-xs text-slate-400 mt-3 pt-2 border-t">
+                            <span><i class="fa-regular fa-eye"></i> ${s.views}</span>
+                            <span><i class="fa-regular fa-heart text-red-500"></i> ${s.likes.length}</span>
+                            <span>${s.author}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
         }
 
-        // Delete Chapter & Story Logic
-        function deleteChapter(storyId, chapterId) {
-            const story = stories.find(s => s.id === storyId);
+        // View Detail Story
+        function viewStory(storyId) {
+            activeStoryId = storyId;
+            const story = db.stories.find(s => s.id === storyId);
             if (!story) return;
 
-            if (!currentUser || currentUser.username !== story.authorUsername) {
-                alert("Bạn không có quyền xóa chương này!");
+            story.views += 1;
+            saveData();
+
+            const isLiked = currentUser && story.likes.includes(currentUser.username);
+            const isOwner = currentUser && (currentUser.username === story.author || currentUser.role === 'admin');
+
+            const detailBox = document.getElementById('story-detail-content');
+            detailBox.innerHTML = `
+                <div class="flex flex-col md:flex-row gap-6">
+                    <img src="${story.cover || 'https://via.placeholder.com/300x400?text=No+Cover'}" class="w-full md:w-48 h-64 object-cover rounded-lg shadow">
+                    <div class="space-y-3 flex-grow">
+                        <div class="flex justify-between items-start">
+                            <h2 class="text-2xl font-bold text-slate-800">${story.title}</h2>
+                            ${currentUser && currentUser.role === 'admin' ? `
+                                <button onclick="deleteStory('${story.id}')" class="px-3 py-1 bg-red-600 text-white rounded text-xs"><i class="fa-solid fa-trash"></i> Xóa Truyện</button>
+                            ` : ''}
+                        </div>
+                        <p class="text-xs text-indigo-600 font-semibold">Tác giả: ${story.author}</p>
+                        <p class="text-sm text-slate-600 leading-relaxed">${story.desc}</p>
+                        <div class="flex gap-4 items-center pt-2">
+                            <button onclick="toggleLike('${story.id}')" class="px-4 py-2 border rounded-lg text-sm flex items-center gap-2 ${isLiked ? 'bg-red-50 border-red-200 text-red-600' : 'text-slate-600'}">
+                                <i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart text-red-500"></i>
+                                <span>${story.likes.length} Thích</span>
+                            </button>
+                            <span class="text-xs text-slate-400"><i class="fa-regular fa-eye"></i> ${story.views} lượt xem</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('add-chap-btn').classList.toggle('hidden', !isOwner);
+            renderChapters(story);
+            showSection('detail');
+        }
+
+        function renderChapters(story) {
+            const list = document.getElementById('chapter-list');
+            if (story.chapters.length === 0) {
+                list.innerHTML = `<div class="py-4 text-slate-400 text-sm">Chưa có chương nào.</div>`;
                 return;
             }
 
-            if (confirm("Bạn có chắc chắn muốn xóa chương này không?")) {
-                story.chapters = story.chapters.filter(c => c.id !== chapterId);
+            list.innerHTML = story.chapters.map((c, index) => {
+                const isUnlocked = c.price === 0 || (currentUser && (c.unlockedBy.includes(currentUser.username) || story.author === currentUser.username || currentUser.role === 'admin'));
+                return `
+                    <div class="py-3 flex justify-between items-center hover:bg-slate-50 px-2 rounded">
+                        <div class="cursor-pointer" onclick="readChapter('${c.id}')">
+                            <span class="font-medium text-sm">Chương ${index + 1}: ${c.title}</span>
+                            ${c.price > 0 ? `<span class="ml-2 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full"><i class="fa-solid fa-coins"></i> ${c.price} Xu</span>` : ''}
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="readChapter('${c.id}')" class="text-xs px-3 py-1 bg-indigo-50 text-indigo-600 font-semibold rounded hover:bg-indigo-100">
+                                ${isUnlocked ? 'Đọc' : 'Mở khóa'}
+                            </button>
+                            ${currentUser && currentUser.role === 'admin' ? `
+                                <button onclick="deleteChapter('${story.id}', '${c.id}')" class="text-xs text-red-500 hover:underline"><i class="fa-solid fa-trash"></i></button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Read Chapter Logic
+        function readChapter(chapId) {
+            activeChapterId = chapId;
+            const story = db.stories.find(s => s.id === activeStoryId);
+            const chap = story.chapters.find(c => c.id === chapId);
+
+            const isUnlocked = chap.price === 0 || (currentUser && (chap.unlockedBy.includes(currentUser.username) || story.author === currentUser.username || currentUser.role === 'admin'));
+
+            if (!isUnlocked) {
+                if (!currentUser) {
+                    alert('Bạn cần đăng nhập để mở khóa chương này!');
+                    openAuthModal(true);
+                    return;
+                }
+                if (confirm(`Chương này yêu cầu ${chap.price} Xu để mở khóa. Bạn có muốn dùng Xu không?`)) {
+                    const freshUser = db.users.find(u => u.username === currentUser.username);
+                    if (freshUser.coins < chap.price) {
+                        alert('Bạn không đủ Xu! Hãy xem quảng cáo để nhận thêm Xu.');
+                        return;
+                    }
+                    // Deduct coins & pay author
+                    freshUser.coins -= chap.price;
+                    const author = db.users.find(u => u.username === story.author);
+                    if (author) author.coins += chap.price;
+
+                    chap.unlockedBy.push(currentUser.username);
+                    saveData();
+                    updateNav();
+                    alert('Mở khóa thành công!');
+                } else {
+                    return;
+                }
+            }
+
+            // Render Reader Content
+            const reader = document.getElementById('chapter-reader');
+            let contentHtml = '';
+
+            if (chap.type === 'text') {
+                contentHtml = `<p class="whitespace-pre-line text-slate-700 leading-relaxed">${chap.content}</p>`;
+            } else if (chap.type === 'comic') {
+                contentHtml = `<div class="space-y-2">${chap.content.map(img => `<img src="${img}" class="w-full rounded">`).join('')}</div>`;
+            } else if (chap.type === 'audio') {
+                contentHtml = `<audio controls class="w-full mt-4"><source src="${chap.content}" type="audio/mpeg"></audio>`;
+            }
+
+            reader.innerHTML = `
+                <h2 class="text-xl font-bold text-slate-800 border-b pb-3">${chap.title}</h2>
+                <div class="py-4">${contentHtml}</div>
+            `;
+
+            renderComments(chap);
+            showSection('read');
+        }
+
+        function backToStory() {
+            showSection('detail');
+        }
+
+        // Comment System
+        function renderComments(chap) {
+            const list = document.getElementById('comments-list');
+            if (!chap.comments || chap.comments.length === 0) {
+                list.innerHTML = `<p class="text-xs text-slate-400">Chưa có bình luận nào.</p>`;
+                return;
+            }
+
+            list.innerHTML = chap.comments.map((cmt, idx) => `
+                <div class="bg-slate-50 p-3 rounded-lg flex justify-between items-start">
+                    <div>
+                        <span class="font-bold text-xs text-indigo-600">${cmt.user}</span>
+                        <p class="text-sm text-slate-700 mt-0.5">${cmt.text}</p>
+                    </div>
+                    ${currentUser && currentUser.role === 'admin' ? `
+                        <button onclick="deleteComment('${idx}')" class="text-xs text-red-500 hover:underline"><i class="fa-solid fa-trash"></i></button>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function addComment() {
+            if (!currentUser) {
+                alert('Bạn cần đăng nhập để viết bình luận!');
+                openAuthModal(true);
+                return;
+            }
+            const input = document.getElementById('comment-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const story = db.stories.find(s => s.id === activeStoryId);
+            const chap = story.chapters.find(c => c.id === activeChapterId);
+            if (!chap.comments) chap.comments = [];
+
+            chap.comments.push({ user: currentUser.username, text: text });
+            saveData();
+            input.value = '';
+            renderComments(chap);
+        }
+
+        function toggleLike(storyId) {
+            if (!currentUser) {
+                alert('Bạn cần đăng nhập để thả tim bài viết!');
+                openAuthModal(true);
+                return;
+            }
+            const story = db.stories.find(s => s.id === storyId);
+            const index = story.likes.indexOf(currentUser.username);
+            if (index > -1) {
+                story.likes.splice(index, 1);
+            } else {
+                story.likes.push(currentUser.username);
+            }
+            saveData();
+            viewStory(storyId);
+        }
+
+        // Admin Panel Rendering & Actions
+        function renderAdminPanel() {
+            if (!currentUser || currentUser.role !== 'admin') {
+                showSection('home');
+                return;
+            }
+            const list = document.getElementById('admin-user-list');
+            list.innerHTML = db.users.map(u => `
+                <div class="py-3 flex justify-between items-center">
+                    <div>
+                        <span class="font-bold text-sm">${u.username}</span>
+                        <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded ml-2">${u.coins} Xu</span>
+                        ${u.banned ? '<span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded ml-1 font-bold">Đã cấm</span>' : ''}
+                    </div>
+                    ${u.username !== 'quantrithuylinh' ? `
+                        <div class="flex gap-2">
+                            <button onclick="adminGiveCoins('${u.username}')" class="px-2 py-1 bg-emerald-600 text-white text-xs rounded">+ Tặng Xu</button>
+                            <button onclick="adminToggleBan('${u.username}')" class="px-2 py-1 ${u.banned ? 'bg-gray-500' : 'bg-red-600'} text-white text-xs rounded">
+                                ${u.banned ? 'Bỏ Cấm' : 'Cấm Truy Cập'}
+                            </button>
+                        </div>
+                    ` : '<span class="text-xs text-slate-400">Tài khoản Quản trị</span>'}
+                </div>
+            `).join('');
+        }
+
+        function adminGiveCoins(username) {
+            const amount = prompt(`Nhập số Xu muốn tặng cho ${username}:`, '100');
+            if (amount && !isNaN(amount)) {
+                const user = db.users.find(u => u.username === username);
+                user.coins += parseInt(amount);
                 saveData();
-                renderProfileTab();
-                renderLibrary();
-                updateWriterStorySelect();
+                renderAdminPanel();
+                updateNav();
+                alert(`Đã tặng ${amount} Xu cho ${username}!`);
             }
         }
 
-        function deleteChapterFromModal() {
-            const storyId = document.getElementById('edit-chap-story-id').value;
-            const chapterId = document.getElementById('edit-chap-id').value;
-            closeModal('edit-chapter-modal');
-            deleteChapter(storyId, chapterId);
-        }
-
-        function deleteStoryFromModal() {
-            const storyId = document.getElementById('edit-story-id').value;
-            closeModal('edit-story-modal');
-            deleteStory(storyId);
-        }
-
-        // Edit Story Modal Logic
-        function openEditStoryModal(storyId) {
-            const story = stories.find(s => s.id === storyId);
-            if (!story) return;
-
-            if (!currentUser || currentUser.username !== story.authorUsername) {
-                alert("Bạn không có quyền sửa tác phẩm này!");
-                return;
-            }
-
-            document.getElementById('edit-story-id').value = story.id;
-            document.getElementById('edit-story-title').value = story.title;
-            document.getElementById('edit-story-type').value = story.type || 'TEXT';
-            document.getElementById('edit-story-genre').value = story.genre;
-            document.getElementById('edit-story-desc').value = story.desc || '';
-
-            document.getElementById('edit-story-modal').classList.remove('hidden');
-        }
-
-        function handleSaveEditStory(e) {
-            e.preventDefault();
-            const id = document.getElementById('edit-story-id').value;
-            const story = stories.find(s => s.id === id);
-
-            if (!story) return;
-
-            story.title = document.getElementById('edit-story-title').value.trim();
-            story.type = document.getElementById('edit-story-type').value;
-            story.genre = document.getElementById('edit-story-genre').value;
-            story.desc = document.getElementById('edit-story-desc').value.trim();
-
+        function adminToggleBan(username) {
+            const user = db.users.find(u => u.username === username);
+            user.banned = !user.banned;
             saveData();
-            alert("Đã cập nhật tác phẩm thành công!");
-            closeModal('edit-story-modal');
-            renderLibrary();
-            renderProfileTab();
-            updateWriterStorySelect();
+            renderAdminPanel();
+            alert(`Đã ${user.banned ? 'CẤM' : 'GỠ CẤM'} tài khoản ${username}!`);
         }
 
-        // Edit Chapter Modal Logic
-        function openEditChapterModal(storyId, chapterId) {
-            const story = stories.find(s => s.id === storyId);
-            if (!story) return;
-
-            if (!currentUser || currentUser.username !== story.authorUsername) {
-                alert("Bạn không có quyền sửa chương này!");
-                return;
-            }
-
-            const chapter = story.chapters.find(c => c.id === chapterId);
-            if (!chapter) return;
-
-            document.getElementById('edit-chap-story-id').value = story.id;
-            document.getElementById('edit-chap-id').value = chapter.id;
-            document.getElementById('edit-chap-title').value = chapter.title;
-            document.getElementById('edit-chap-coin').value = chapter.coinCost || 0;
-            document.getElementById('edit-chap-content').value = chapter.content || '';
-
-            document.getElementById('edit-chapter-modal').classList.remove('hidden');
-        }
-
-        function handleSaveEditChapter(e) {
-            e.preventDefault();
-            const storyId = document.getElementById('edit-chap-story-id').value;
-            const chapterId = document.getElementById('edit-chap-id').value;
-
-            const story = stories.find(s => s.id === storyId);
-            if (!story) return;
-
-            const chapter = story.chapters.find(c => c.id === chapterId);
-            if (!chapter) return;
-
-            chapter.title = document.getElementById('edit-chap-title').value.trim();
-            chapter.coinCost = Math.max(0, parseInt(document.getElementById('edit-chap-coin').value) || 0);
-            chapter.content = document.getElementById('edit-chap-content').value;
-
-            saveData();
-            alert("Đã cập nhật nội dung chương thành công!");
-            closeModal('edit-chapter-modal');
-            renderProfileTab();
-        }
-
-        // Auth Modal Helper
-        function renderUserAuthArea() {
-            const container = document.getElementById('user-auth-area');
-            if (currentUser) {
-                container.innerHTML = `
-                    <span class="text-xs font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-                        <i class="fa-solid fa-user-circle text-sm"></i> ${currentUser.name}
-                    </span>
-                    <button onclick="handleLogout()" class="px-2 py-1 text-xs text-slate-500 hover:text-rose-500 font-medium transition">
-                        Đăng xuất
-                    </button>
-                `;
-            } else {
-                container.innerHTML = `
-                    <button onclick="openAuthModal()" class="px-3 py-1.5 text-xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 rounded-lg transition">
-                        <i class="fa-solid fa-right-to-bracket mr-1"></i> Đăng Nhập
-                    </button>
-                `;
+        function deleteStory(storyId) {
+            if (confirm('Bạn có chắc chắn muốn xóa bộ truyện này?')) {
+                db.stories = db.stories.filter(s => s.id !== storyId);
+                saveData();
+                showSection('home');
             }
         }
 
-        function openAuthModal() {
-            isRegisterMode = false;
-            document.getElementById('auth-modal-title').innerHTML = `<i class="fa-solid fa-user-lock text-amber-500"></i> Đăng Nhập`;
-            document.getElementById('auth-submit-btn').innerText = "Đăng Nhập";
-            document.getElementById('auth-toggle-btn').innerText = "Chưa có tài khoản? Đăng ký";
-            document.getElementById('auth-modal').classList.remove('hidden');
+        function deleteChapter(storyId, chapId) {
+            if (confirm('Bạn có chắc muốn xóa chương này?')) {
+                const story = db.stories.find(s => s.id === storyId);
+                story.chapters = story.chapters.filter(c => c.id !== chapId);
+                saveData();
+                viewStory(storyId);
+            }
+        }
+
+        function deleteComment(commentIdx) {
+            if (confirm('Bạn có chắc muốn xóa bình luận này?')) {
+                const story = db.stories.find(s => s.id === activeStoryId);
+                const chap = story.chapters.find(c => c.id === activeChapterId);
+                chap.comments.splice(commentIdx, 1);
+                saveData();
+                renderComments(chap);
+            }
+        }
+
+        // Ads System
+        function watchAds() {
+            if (!currentUser) return;
+            alert('Đang xem quảng cáo (5 giây)...');
+            setTimeout(() => {
+                const user = db.users.find(u => u.username === currentUser.username);
+                user.coins += 20;
+                saveData();
+                updateNav();
+                alert('Xem thành công! Bạn nhận được +20 Xu.');
+            }, 1000);
+        }
+
+        // Authentication Handlers
+        function openAuthModal(isLogin) {
+            isAuthLogin = isLogin;
+            document.getElementById('auth-title').innerText = isLogin ? 'Đăng Nhập' : 'Đăng Ký';
+            document.getElementById('auth-toggle-text').innerText = isLogin ? 'Chưa có tài khoản?' : 'Đã có tài khoản?';
+            document.getElementById('auth-toggle-btn').innerText = isLogin ? 'Đăng ký' : 'Đăng nhập';
+            openModal('modal-auth');
         }
 
         function toggleAuthMode() {
-            isRegisterMode = !isRegisterMode;
-            if (isRegisterMode) {
-                document.getElementById('auth-modal-title').innerHTML = `<i class="fa-solid fa-user-plus text-amber-500"></i> Đăng Ký Tài Khoản`;
-                document.getElementById('auth-submit-btn').innerText = "Đăng Ký";
-                document.getElementById('auth-toggle-btn').innerText = "Đã có tài khoản? Đăng nhập";
-            } else {
-                openAuthModal();
-            }
+            openAuthModal(!isAuthLogin);
         }
 
-        function handleAuthSubmit(e) {
+        function handleAuth(e) {
             e.preventDefault();
-            const username = document.getElementById('auth-username').value.trim().toLowerCase();
-            const password = document.getElementById('auth-password').value.trim();
+            const un = document.getElementById('auth-username').value.trim();
+            const pw = document.getElementById('auth-password').value.trim();
 
-            if (!username || !password) return;
-
-            if (isRegisterMode) {
-                if (users.some(u => u.username === username)) {
-                    alert("Tên đăng nhập đã tồn tại!");
+            if (isAuthLogin) {
+                const user = db.users.find(u => u.username === un && u.password === pw);
+                if (!user) {
+                    alert('Sai tên đăng nhập hoặc mật khẩu!');
                     return;
                 }
-                const newUser = { username, password, name: username, coins: 10, unlockedChapters: [] };
-                users.push(newUser);
-                currentUser = newUser;
-                saveData();
-                alert("Đăng ký thành công! Nhận ngay 10 xu thưởng.");
-            } else {
-                const user = users.find(u => u.username === username && u.password === password);
-                if (!user) {
-                    alert("Sai tên đăng nhập hoặc mật khẩu!");
+                if (user.banned) {
+                    alert('Tài khoản này đã bị Admin cấm truy cập!');
                     return;
                 }
                 currentUser = user;
-                saveData();
+            } else {
+                if (db.users.find(u => u.username === un)) {
+                    alert('Tên đăng nhập đã tồn tại!');
+                    return;
+                }
+                const newUser = { username: un, password: pw, coins: 50, role: 'user', banned: false };
+                db.users.push(newUser);
+                currentUser = newUser;
             }
-
-            closeModal('auth-modal');
-            renderUserAuthArea();
-            updateCoinDisplay();
-            renderLibrary();
-            updateWriterStorySelect();
+            saveData();
+            updateNav();
+            closeModal('modal-auth');
+            document.getElementById('auth-form').reset();
         }
 
-        function handleLogout() {
+        function logout() {
             currentUser = null;
             saveData();
-            renderUserAuthArea();
-            updateCoinDisplay();
-            renderLibrary();
-            switchTab('library');
+            updateNav();
+            showSection('home');
         }
 
-        function closeModal(modalId) {
-            document.getElementById(modalId).classList.add('hidden');
-        }
-
-        function handleCreateNewClick() {
-            if (!currentUser) {
-                alert("Bạn phải Đăng Nhập tài khoản để tạo truyện!");
-                openAuthModal();
-                return;
-            }
-            document.getElementById('create-story-modal').classList.remove('hidden');
-        }
-
+        // Story Creation
         function handleCreateStory(e) {
             e.preventDefault();
             if (!currentUser) return;
 
-            const type = document.getElementById('new-story-type').value;
-            const title = document.getElementById('new-story-title').value.trim();
-            const genre = document.getElementById('new-story-genre').value;
-            const desc = document.getElementById('new-story-desc').value.trim();
-
-            if (!title) return;
+            const title = document.getElementById('story-title').value.trim();
+            const desc = document.getElementById('story-desc').value.trim();
+            const coverInput = document.getElementById('story-cover');
 
             const newStory = {
-                id: 'story-' + Date.now(),
-                type: type || 'TEXT',
-                title,
-                author: currentUser.name,
-                authorUsername: currentUser.username,
-                genre,
-                desc,
+                id: 's_' + Date.now(),
+                title: title,
+                desc: desc,
+                author: currentUser.username,
+                cover: '',
                 views: 0,
-                viewedBy: [],
-                likes: 0,
-                likedBy: [],
-                earnings: 0,
+                likes: [],
                 chapters: []
             };
 
-            stories.unshift(newStory);
-            saveData();
-            closeModal('create-story-modal');
-            renderLibrary();
-            openWriterForStory(newStory.id);
-        }
-
-        // Render Library with Recommendations Sorting
-        function renderLibrary() {
-            const grid = document.getElementById('stories-grid');
-            const searchQuery = document.getElementById('search-input').value.toLowerCase();
-            const sortMode = document.getElementById('sort-filter').value;
-            const typeFilter = document.getElementById('type-filter').value;
-            const genreFilter = document.getElementById('genre-filter').value;
-
-            grid.innerHTML = '';
-
-            let filtered = stories.filter(s => {
-                const matchesSearch = s.title.toLowerCase().includes(searchQuery) || s.author.toLowerCase().includes(searchQuery);
-                const matchesType = typeFilter === 'ALL' || (s.type || 'TEXT') === typeFilter;
-                const matchesGenre = genreFilter === 'ALL' || s.genre === genreFilter;
-                return matchesSearch && matchesType && matchesGenre;
-            });
-
-            filtered.sort((a, b) => {
-                const viewsA = a.views || 0;
-                const viewsB = b.views || 0;
-                const likesA = a.likes || 0;
-                const likesB = b.likes || 0;
-
-                if (sortMode === 'RECOMMENDED') {
-                    if (viewsB !== viewsA) return viewsB - viewsA;
-                    return likesB - likesA;
-                } else if (sortMode === 'VIEWS') {
-                    return viewsB - viewsA;
-                } else if (sortMode === 'LIKES') {
-                    return likesB - likesA;
-                } else if (sortMode === 'NEWEST') {
-                    return b.id.localeCompare(a.id);
-                }
-                return 0;
-            });
-
-            if (filtered.length === 0) {
-                grid.innerHTML = `
-                    <div class="col-span-full text-center py-12 text-slate-400">
-                        <i class="fa-solid fa-folder-open text-4xl mb-3"></i>
-                        <p>Chưa có tác phẩm nào phù hợp.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            filtered.forEach(story => {
-                const isOwner = currentUser && (currentUser.username === story.authorUsername);
-                const storyType = story.type || 'TEXT';
-                const liked = isStoryLiked(story.id);
-
-                let typeLabel = '📖 Chữ';
-                let typeColor = 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300';
-
-                if (storyType === 'COMIC') {
-                    typeLabel = '🎨 Tranh';
-                    typeColor = 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300';
-                } else if (storyType === 'AUDIO') {
-                    typeLabel = '🎧 Audio';
-                    typeColor = 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300';
-                }
-
-                grid.innerHTML += `
-                    <div class="bg-white dark:bg-slate-800 sepia-card rounded-2xl border border-slate-200/80 dark:border-slate-700/80 p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-4">
-                        <div class="space-y-2">
-                            <div class="flex items-center justify-between gap-2">
-                                <div class="flex items-center gap-1.5">
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${typeColor}">${typeLabel}</span>
-                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">${story.genre}</span>
-                                </div>
-                                <span class="text-xs text-slate-400"><i class="fa-solid fa-list-ol mr-1"></i>${story.chapters.length} chương</span>
-                            </div>
-
-                            <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100 line-clamp-1">${story.title}</h3>
-                            <p class="text-xs text-amber-600 dark:text-amber-400 font-medium">Tác giả: ${story.author} ${isOwner ? '<span class="text-[10px] bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded ml-1 font-bold">(Tôi)</span>' : ''}</p>
-                            <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-3 leading-relaxed">${story.desc || 'Chưa có mô tả ngắn.'}</p>
-                        </div>
-
-                        <!-- Stats & Action Footer -->
-                        <div class="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-700/60">
-                            <div class="flex items-center justify-between text-xs text-slate-400">
-                                <span class="flex items-center gap-1"><i class="fa-solid fa-eye text-amber-500"></i> ${story.views || 0} lượt xem</span>
-                                <button onclick="toggleLikeStory('${story.id}', event)" class="flex items-center gap-1 font-semibold ${liked ? 'text-rose-500' : 'text-slate-400 hover:text-rose-500'} transition">
-                                    <i class="${liked ? 'fa-solid' : 'fa-regular'} fa-heart text-rose-500"></i> ${story.likes || 0} Tim
-                                </button>
-                            </div>
-
-                            <div class="flex items-center justify-between gap-2">
-                                <div>
-                                    ${isOwner ? `
-                                        <button onclick="openEditStoryModal('${story.id}')" class="text-slate-400 hover:text-amber-500 p-1.5 text-xs transition mr-1" title="Sửa tác phẩm">
-                                            <i class="fa-solid fa-pen"></i>
-                                        </button>
-                                        <button onclick="deleteStory('${story.id}')" class="text-slate-400 hover:text-rose-500 p-1.5 text-xs transition" title="Xóa tác phẩm">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </button>
-                                    ` : ''}
-                                </div>
-
-                                <div class="flex gap-2">
-                                    ${isOwner ? `
-                                        <button onclick="openWriterForStory('${story.id}')" class="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition">
-                                            <i class="fa-solid fa-plus mr-1"></i> Đăng Chương
-                                        </button>
-                                    ` : ''}
-                                    <button onclick="openReader('${story.id}', 0)" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-500 text-white hover:bg-amber-600 shadow-sm transition">
-                                        <i class="fa-solid fa-glasses mr-1"></i> Đọc Ngay
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-
-        function deleteStory(storyId) {
-            const story = stories.find(s => s.id === storyId);
-            if (!story) return;
-
-            if (!currentUser || currentUser.username !== story.authorUsername) {
-                alert("Bạn không có quyền xóa tác phẩm này!");
-                return;
-            }
-
-            if (confirm("Bạn có chắc chắn muốn xóa toàn bộ tác phẩm này cùng các chương đi kèm?")) {
-                stories = stories.filter(s => s.id !== storyId);
-                saveData();
-                renderLibrary();
-                renderProfileTab();
-                updateWriterStorySelect();
-            }
-        }
-
-        // Writer & Dynamic Inputs
-        function updateWriterStorySelect() {
-            const select = document.getElementById('writer-story-select');
-            select.innerHTML = '';
-
-            if (!currentUser) {
-                select.innerHTML = '<option value="">Vui lòng đăng nhập</option>';
-                return;
-            }
-
-            const myStories = stories.filter(s => s.authorUsername === currentUser.username);
-
-            if (myStories.length === 0) {
-                select.innerHTML = '<option value="">Bạn chưa có tác phẩm nào</option>';
-                document.getElementById('content-input-container').innerHTML = '';
-                return;
-            }
-
-            myStories.forEach(s => {
-                select.innerHTML += `<option value="${s.id}">${s.title} (${s.type || 'TEXT'})</option>`;
-            });
-
-            onWriterStoryChange();
-        }
-
-        function onWriterStoryChange() {
-            const storyId = document.getElementById('writer-story-select').value;
-            const story = stories.find(s => s.id === storyId);
-            const container = document.getElementById('content-input-container');
-
-            if (!story) {
-                container.innerHTML = '';
-                return;
-            }
-
-            const type = story.type || 'TEXT';
-
-            if (type === 'TEXT') {
-                container.innerHTML = `
-                    <div>
-                        <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Nội Dung Chương (Văn bản)</label>
-                        <textarea id="writer-content-text" rows="14" placeholder="Bắt đầu viết câu chuyện..." 
-                            class="w-full p-4 text-base rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-500 font-serif-custom leading-relaxed custom-scrollbar"></textarea>
-                    </div>
-                `;
-            } else if (type === 'COMIC') {
-                container.innerHTML = `
-                    <div class="space-y-3">
-                        <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Tải Ảnh Trang Truyện Tranh (Nhiều ảnh)</label>
-                        <input type="file" id="comic-file-input" multiple accept="image/*" onchange="handleComicUpload(event)"
-                            class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-amber-500 file:text-white hover:file:bg-amber-600 cursor-pointer">
-                        <div id="comic-preview-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2"></div>
-                    </div>
-                `;
-                uploadedComicImages = [];
-            } else if (type === 'AUDIO') {
-                container.innerHTML = `
-                    <div class="space-y-3">
-                        <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">Tải File Audio (MP3/WAV/M4A...)</label>
-                        <input type="file" id="audio-file-input" accept="audio/*" onchange="handleAudioUpload(event)"
-                            class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-amber-500 file:text-white hover:file:bg-amber-600 cursor-pointer">
-                        <div id="audio-preview-player" class="pt-2"></div>
-                    </div>
-                `;
-                uploadedAudioData = '';
-            }
-        }
-
-        function handleComicUpload(e) {
-            const files = Array.from(e.target.files);
-            uploadedComicImages = [];
-            const previewContainer = document.getElementById('comic-preview-grid');
-            previewContainer.innerHTML = '';
-
-            files.forEach(file => {
+            if (coverInput.files && coverInput.files[0]) {
                 const reader = new FileReader();
-                reader.onload = (event) => {
-                    const base64 = event.target.result;
-                    uploadedComicImages.push(base64);
-                    previewContainer.innerHTML += `
-                        <div class="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 h-28 bg-slate-100">
-                            <img src="${base64}" class="w-full h-full object-cover">
-                        </div>
-                    `;
+                reader.onload = function(evt) {
+                    newStory.cover = evt.target.result;
+                    db.stories.push(newStory);
+                    saveData();
+                    closeModal('modal-story');
+                    renderStories();
                 };
-                reader.readAsDataURL(file);
-            });
-        }
-
-        function handleAudioUpload(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                uploadedAudioData = event.target.result;
-                document.getElementById('audio-preview-player').innerHTML = `
-                    <audio controls class="w-full">
-                        <source src="${uploadedAudioData}">
-                    </audio>
-                `;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function openWriterForStory(storyId) {
-            const story = stories.find(s => s.id === storyId);
-            if (!story) return;
-
-            if (!currentUser || currentUser.username !== story.authorUsername) {
-                alert("Bạn chỉ có quyền đăng chương cho tác phẩm của chính mình!");
-                return;
-            }
-
-            switchTab('writer');
-            document.getElementById('writer-story-select').value = storyId;
-            onWriterStoryChange();
-        }
-
-        function saveChapter() {
-            const storyId = document.getElementById('writer-story-select').value;
-            const title = document.getElementById('writer-chapter-title').value.trim();
-            const coinCost = Math.max(0, parseInt(document.getElementById('writer-coin-cost').value) || 0);
-
-            const story = stories.find(s => s.id === storyId);
-            if (!story) return;
-
-            if (!currentUser || currentUser.username !== story.authorUsername) {
-                alert("Bạn không có quyền thực hiện!");
-                return;
-            }
-
-            if (!title) {
-                alert("Vui lòng nhập tên/số chương!");
-                return;
-            }
-
-            const type = story.type || 'TEXT';
-            let chapterPayload = { id: 'chap-' + Date.now(), title, coinCost, comments: [] };
-
-            if (type === 'TEXT') {
-                const textContent = document.getElementById('writer-content-text').value.trim();
-                if (!textContent) { alert("Vui lòng nhập nội dung văn bản!"); return; }
-                chapterPayload.content = textContent;
-            } else if (type === 'COMIC') {
-                if (uploadedComicImages.length === 0) { alert("Vui lòng tải lên ảnh truyện tranh!"); return; }
-                chapterPayload.images = uploadedComicImages;
-            } else if (type === 'AUDIO') {
-                if (!uploadedAudioData) { alert("Vui lòng tải lên file âm thanh audio!"); return; }
-                chapterPayload.audioUrl = uploadedAudioData;
-            }
-
-            story.chapters.push(chapterPayload);
-            saveData();
-            alert("Đã đăng chương mới thành công!");
-
-            document.getElementById('writer-chapter-title').value = '';
-            document.getElementById('writer-coin-cost').value = '0';
-            onWriterStoryChange();
-        }
-
-        // Reader & Lock Chapter Logic
-        function isChapterUnlocked(chapterId, storyAuthorUsername) {
-            if (currentUser && currentUser.username === storyAuthorUsername) return true;
-
-            if (currentUser) {
-                return (currentUser.unlockedChapters || []).includes(chapterId);
+                reader.readAsDataURL(coverInput.files[0]);
             } else {
-                return guestUnlockedChapters.includes(chapterId);
-            }
-        }
-
-        function unlockChapterWithCoins(chapterId, cost) {
-            const currentCoins = getCoins();
-            if (currentCoins < cost) {
-                alert("Bạn không đủ xu! Hãy xem quảng cáo để nhận thêm xu.");
-                openAdModal();
-                return;
-            }
-
-            if (confirm(`Xác nhận dùng ${cost} Xu để mở khóa chương này?`)) {
-                setCoins(currentCoins - cost);
-
-                const story = stories.find(s => s.id === activeStoryId);
-                if (story) {
-                    story.earnings = (story.earnings || 0) + cost; // Add revenue to story author
-                }
-
-                if (currentUser) {
-                    if (!currentUser.unlockedChapters) currentUser.unlockedChapters = [];
-                    currentUser.unlockedChapters.push(chapterId);
-
-                    const u = users.find(x => x.username === currentUser.username);
-                    if (u) {
-                        if (!u.unlockedChapters) u.unlockedChapters = [];
-                        u.unlockedChapters.push(chapterId);
-                    }
-                } else {
-                    guestUnlockedChapters.push(chapterId);
-                }
-
+                db.stories.push(newStory);
                 saveData();
-                loadChapterForReading(activeChapterIndex);
+                closeModal('modal-story');
+                renderStories();
             }
         }
 
-        function openReader(storyId, chapIdx) {
-            activeStoryId = storyId;
-            activeChapterIndex = chapIdx;
-
-            const story = stories.find(s => s.id === storyId);
-            if (!story || story.chapters.length === 0) {
-                alert("Tác phẩm này chưa có chương nào!");
-                return;
-            }
-
-            registerStoryView(story);
-
-            switchTab('reader');
-
-            const chapSelect = document.getElementById('reader-chapter-select');
-            chapSelect.innerHTML = '';
-            story.chapters.forEach((c, idx) => {
-                const lockBadge = (c.coinCost && c.coinCost > 0 && !isChapterUnlocked(c.id, story.authorUsername)) ? ' 🔒' : '';
-                chapSelect.innerHTML += `<option value="${idx}" ${idx === chapIdx ? 'selected' : ''}>${c.title}${lockBadge}</option>`;
-            });
-
-            loadChapterForReading(chapIdx);
+        // Chapter Creation
+        function toggleChapInput(type) {
+            document.getElementById('input-text-container').classList.toggle('hidden', type !== 'text');
+            document.getElementById('input-file-container').classList.toggle('hidden', type === 'text');
         }
 
-        function loadChapterForReading(index) {
-            activeChapterIndex = parseInt(index);
-            const story = stories.find(s => s.id === activeStoryId);
-            if (!story) return;
+        function openAddChapterModal() {
+            openModal('modal-chapter');
+        }
 
-            const chapter = story.chapters[activeChapterIndex];
-            const type = story.type || 'TEXT';
+        function handleCreateChapter(e) {
+            e.preventDefault();
+            const title = document.getElementById('chap-title').value.trim();
+            const price = parseInt(document.getElementById('chap-price').value) || 0;
+            const type = document.querySelector('input[name="chap-type"]:checked').value;
 
-            document.getElementById('reader-story-title').innerText = story.title;
-            document.getElementById('reader-chapter-title').innerText = chapter.title;
-            document.getElementById('reader-meta-author').innerText = `Tác giả: ${story.author}`;
-            document.getElementById('reader-views-count').innerText = story.views || 0;
+            const story = db.stories.find(s => s.id === activeStoryId);
 
-            updateReaderLikeUI();
-            renderComments(chapter.comments || []);
+            const newChap = {
+                id: 'c_' + Date.now(),
+                title: title,
+                type: type,
+                price: price,
+                unlockedBy: [],
+                comments: []
+            };
 
-            const badge = document.getElementById('reader-format-badge');
-            const textGroup = document.getElementById('text-controls-group');
-            const container = document.getElementById('reader-body-container');
-
-            const isUnlocked = !chapter.coinCost || chapter.coinCost === 0 || isChapterUnlocked(chapter.id, story.authorUsername);
-
-            if (!isUnlocked) {
-                textGroup.classList.add('hidden');
-                badge.innerText = "Khóa";
-                badge.className = "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-rose-100 text-rose-700";
-
-                container.innerHTML = `
-                    <div class="py-12 px-6 text-center space-y-5 bg-amber-50/50 dark:bg-slate-700/30 rounded-3xl border border-amber-200/60 dark:border-slate-600">
-                        <div class="w-20 h-20 mx-auto rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center text-3xl shadow-lg">
-                            <i class="fa-solid fa-lock"></i>
-                        </div>
-                        
-                        <div class="space-y-1">
-                            <h3 class="text-xl font-bold">Chương Này Đã Bị Khóa</h3>
-                            <p class="text-sm text-slate-500 dark:text-slate-400">Bạn cần <strong class="text-amber-600 dark:text-amber-400">${chapter.coinCost} Xu</strong> để mở khóa và xem trọn vẹn nội dung.</p>
-                        </div>
-
-                        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-                            <button onclick="unlockChapterWithCoins('${chapter.id}', ${chapter.coinCost})" 
-                                class="w-full sm:w-auto px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-sm shadow-md transition flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-key"></i> Mở Khóa Ngay (${chapter.coinCost} Xu)
-                            </button>
-                            <button onclick="openAdModal()" 
-                                class="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-rose-500 to-amber-500 hover:opacity-90 text-white font-bold rounded-xl text-sm shadow-md transition flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-circle-play"></i> Xem QC Nhận Xu (+10 Xu)
-                            </button>
-                        </div>
-                    </div>
-                `;
+            if (type === 'text') {
+                newChap.content = document.getElementById('chap-content-text').value;
+                story.chapters.push(newChap);
+                saveData();
+                closeModal('modal-chapter');
+                viewStory(activeStoryId);
             } else {
-                if (type === 'TEXT') {
-                    badge.innerText = "Chữ";
-                    badge.className = "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-blue-100 text-blue-700";
-                    textGroup.classList.remove('hidden');
-
-                    container.innerHTML = `
-                        <div id="reader-body-text" class="font-serif-custom leading-loose whitespace-pre-wrap text-justify text-slate-800 dark:text-slate-200 text-lg space-y-4">
-                            ${chapter.content}
-                        </div>
-                    `;
-                } else if (type === 'COMIC') {
-                    badge.innerText = "Tranh";
-                    badge.className = "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-purple-100 text-purple-700";
-                    textGroup.classList.add('hidden');
-
-                    let imgsHtml = '';
-                    if (chapter.images && chapter.images.length > 0) {
-                        chapter.images.forEach(imgUrl => {
-                            imgsHtml += `<img src="${imgUrl}" class="w-full rounded-2xl shadow-md border border-slate-200 dark:border-slate-700 my-4">`;
+                const files = document.getElementById('chap-content-file').files;
+                if (type === 'comic') {
+                    let promises = Array.from(files).map(file => {
+                        return new Promise(resolve => {
+                            const reader = new FileReader();
+                            reader.onload = e => resolve(e.target.result);
+                            reader.readAsDataURL(file);
                         });
-                    } else {
-                        imgsHtml = `<p class="text-center text-slate-400 py-8">Chương này chưa có ảnh.</p>`;
+                    });
+                    Promise.all(promises).then(images => {
+                        newChap.content = images;
+                        story.chapters.push(newChap);
+                        saveData();
+                        closeModal('modal-chapter');
+                        viewStory(activeStoryId);
+                    });
+                } else if (type === 'audio') {
+                    if (files[0]) {
+                        const reader = new FileReader();
+                        reader.onload = e => {
+                            newChap.content = e.target.result;
+                            story.chapters.push(newChap);
+                            saveData();
+                            closeModal('modal-chapter');
+                            viewStory(activeStoryId);
+                        };
+                        reader.readAsDataURL(files[0]);
                     }
-
-                    container.innerHTML = `<div class="space-y-4">${imgsHtml}</div>`;
-                } else if (type === 'AUDIO') {
-                    badge.innerText = "Audio";
-                    badge.className = "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-700";
-                    textGroup.classList.add('hidden');
-
-                    container.innerHTML = `
-                        <div class="py-8 text-center space-y-6">
-                            <div class="w-24 h-24 mx-auto rounded-full bg-gradient-to-tr from-amber-500 to-rose-500 text-white flex items-center justify-center text-3xl shadow-xl shadow-amber-500/20 animate-pulse">
-                                <i class="fa-solid fa-headphones"></i>
-                            </div>
-                            <audio controls class="w-full max-w-md mx-auto">
-                                <source src="${chapter.audioUrl || ''}">
-                            </audio>
-                        </div>
-                    `;
                 }
             }
-
-            document.getElementById('btn-prev-chap').disabled = activeChapterIndex === 0;
-            document.getElementById('btn-next-chap').disabled = activeChapterIndex === story.chapters.length - 1;
-
-            document.getElementById('btn-prev-chap').style.opacity = activeChapterIndex === 0 ? '0.4' : '1';
-            document.getElementById('btn-next-chap').style.opacity = activeChapterIndex === story.chapters.length - 1 ? '0.4' : '1';
-
-            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        function navigateChapter(direction) {
-            const story = stories.find(s => s.id === activeStoryId);
-            if (!story) return;
+        // Helper Modal Tools
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
-            const newIdx = activeChapterIndex + direction;
-            if (newIdx >= 0 && newIdx < story.chapters.length) {
-                document.getElementById('reader-chapter-select').value = newIdx;
-                loadChapterForReading(newIdx);
-            }
-        }
-
-        function changeFontSize(delta) {
-            currentReaderFontSize = Math.max(14, Math.min(28, currentReaderFontSize + delta));
-            const el = document.getElementById('reader-body-text');
-            if (el) el.style.fontSize = `${currentReaderFontSize}px`;
-            document.getElementById('font-size-label').innerText = `${currentReaderFontSize}px`;
-        }
-
-        function changeFontFamily(fontClass) {
-            const el = document.getElementById('reader-body-text');
-            if (el) {
-                el.classList.remove('font-serif-custom', 'font-merriweather', 'font-sans');
-                el.classList.add(fontClass);
-            }
-        }
+        // Initial App Load
+        updateNav();
+        renderStories();
     </script>
 </body>
 </html>
