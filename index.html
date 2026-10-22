@@ -86,7 +86,7 @@
             <div class="bg-white rounded-xl p-6 shadow-sm space-y-4">
                 <div class="flex justify-between items-center">
                     <h3 class="font-bold text-lg">Danh sách chương</h3>
-                    <button id="add-chap-btn" onclick="openAddChapterModal()" class="hidden px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700">
+                    <button id="add-chap-btn" onclick="openAddChapterModal()" class="hidden px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 font-semibold">
                         + Thêm chương
                     </button>
                 </div>
@@ -130,9 +130,12 @@
                         </button>
                     </div>
                     <div class="space-y-1 text-center sm:text-left flex-grow">
-                        <h2 id="profile-username" class="text-2xl font-bold text-slate-800">Tên tài khoản</h2>
-                        <p id="profile-reputation" class="text-sm font-semibold text-indigo-600">Cấp danh tiếng: Đồng</p>
-                        <p class="text-xs text-slate-500">Tự động thu thập Xu khi độc giả mua chương truyện của bạn.</p>
+                        <div class="flex items-center justify-center sm:justify-start gap-2">
+                            <h2 id="profile-nickname" class="text-2xl font-bold text-slate-800">Biệt danh</h2>
+                            <button onclick="openChangeNicknameModal()" class="text-xs text-indigo-600 hover:underline font-semibold">(Đổi biệt danh)</button>
+                        </div>
+                        <p id="profile-username-sub" class="text-xs text-slate-400">@username</p>
+                        <p id="profile-reputation" class="text-sm font-semibold text-indigo-600 mt-1">Cấp danh tiếng: Đồng</p>
                     </div>
                     <div class="text-right bg-amber-50 border border-amber-200 p-4 rounded-xl text-center">
                         <span class="text-xs text-amber-700 font-semibold block">Ví Xu Của Bạn</span>
@@ -224,7 +227,7 @@
                 <button onclick="closeModal('modal-auth')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <form id="auth-form" onsubmit="handleAuth(event)" class="space-y-3">
-                <input type="text" id="auth-username" placeholder="Tên đăng nhập" required class="w-full px-3 py-2 border rounded-lg text-sm">
+                <input type="text" id="auth-username" placeholder="Tên đăng nhập (viết liền không dấu)" required class="w-full px-3 py-2 border rounded-lg text-sm">
                 <input type="password" id="auth-password" placeholder="Mật khẩu" required class="w-full px-3 py-2 border rounded-lg text-sm">
                 <button type="submit" class="w-full py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700">
                     Xác nhận
@@ -234,6 +237,22 @@
                 <span id="auth-toggle-text">Chưa có tài khoản?</span>
                 <button onclick="toggleAuthMode()" class="text-indigo-600 font-semibold ml-1" id="auth-toggle-btn">Đăng ký</button>
             </p>
+        </div>
+    </div>
+
+    <!-- MODAL: Change Nickname -->
+    <div id="modal-nickname" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl p-6 max-w-sm w-full space-y-4 shadow-xl">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="font-bold text-lg">Đổi Biệt Danh Sáng Tác</h3>
+                <button onclick="closeModal('modal-nickname')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-3">
+                <input type="text" id="nickname-input" placeholder="Nhập biệt danh mới..." class="w-full px-3 py-2 border rounded-lg text-sm">
+                <button onclick="saveNewNickname()" class="w-full py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700">
+                    Lưu Biệt Danh
+                </button>
+            </div>
         </div>
     </div>
 
@@ -390,12 +409,25 @@
 
         updateNav();
 
+        // Lắng nghe dữ liệu trực tuyến từ Firebase Mây
         database.ref('truyenhayhoano_db').on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
                 db.users = data.users || [];
                 db.stories = data.stories || [];
                 db.settings = data.settings || db.settings;
+            } else {
+                // Khởi tạo Admin nếu chưa có dữ liệu nào trên mây
+                db.users = [{
+                    username: 'quantrithuylinh',
+                    nickname: 'Quản Trị Viên Thùy Linh',
+                    password: 'Thuylinh99@#',
+                    coins: 99999,
+                    role: 'admin',
+                    avatar: 'https://via.placeholder.com/100',
+                    banned: false
+                }];
+                saveData();
             }
             initAdminAndRender();
         });
@@ -412,19 +444,6 @@
         }
 
         function initAdminAndRender() {
-            const adminExists = db.users.find(u => u.username === 'quantrithuylinh');
-            if (!adminExists) {
-                db.users.push({
-                    username: 'quantrithuylinh',
-                    password: 'Thuylinh99@#',
-                    coins: 99999,
-                    role: 'admin',
-                    avatar: 'https://via.placeholder.com/100',
-                    banned: false
-                });
-                saveData();
-            }
-
             if (currentUser) {
                 const freshUser = db.users.find(u => u.username === currentUser.username);
                 if (freshUser && freshUser.banned) {
@@ -465,8 +484,13 @@
             }
         }
 
+        function getUserDisplayName(username) {
+            const user = db.users.find(u => u.username === username);
+            return (user && user.nickname) ? user.nickname : username;
+        }
+
         function calculateReputation(authorName) {
-            const authorStories = db.stories.filter(s => s.author === authorName);
+            const authorStories = db.stories.filter(s => s.author === authorName || s.authorNickname === authorName);
             let totalLikes = 0;
             authorStories.forEach(s => {
                 if (s.likes) totalLikes += s.likes.length;
@@ -482,6 +506,7 @@
             const nav = document.getElementById('user-nav');
             if (currentUser) {
                 const freshUser = db.users.find(u => u.username === currentUser.username) || currentUser;
+                const displayName = freshUser.nickname || freshUser.username;
                 nav.innerHTML = `
                     <div class="flex items-center gap-3 text-sm">
                         <span class="bg-amber-400 text-slate-900 px-2.5 py-1 rounded-full font-bold flex items-center gap-1">
@@ -490,7 +515,7 @@
                         <button onclick="watchAds()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-2 py-1 rounded text-xs font-bold">+ Nhận Xu</button>
                         <span onclick="showProfile('${freshUser.username}')" class="font-medium cursor-pointer hover:underline flex items-center gap-1.5">
                             <img src="${freshUser.avatar || 'https://via.placeholder.com/100'}" class="w-6 h-6 rounded-full object-cover">
-                            ${freshUser.username} ${freshUser.role === 'admin' ? '<span class="text-xs text-red-300 font-bold">(Admin)</span>' : ''}
+                            ${displayName} ${freshUser.role === 'admin' ? '<span class="text-xs text-red-300 font-bold">(Admin)</span>' : ''}
                         </span>
                         ${freshUser.role === 'admin' ? '<button onclick="showSection(\'admin\')" class="bg-red-600 text-white px-2 py-1 rounded text-xs font-bold">Quản Trị</button>' : ''}
                         <button onclick="openModal('modal-story')" class="bg-indigo-500 hover:bg-indigo-600 text-white px-2.5 py-1 rounded-lg text-xs">+ Đăng Truyện</button>
@@ -514,13 +539,14 @@
             if (sectionId === 'admin') renderAdminPanel();
         }
 
-        // Show My Profile
+        // Trang cá nhân
         function showProfile(username) {
             const user = db.users.find(u => u.username === username);
             if (!user) return;
             const rep = calculateReputation(username);
 
-            document.getElementById('profile-username').innerText = user.username;
+            document.getElementById('profile-nickname').innerText = user.nickname || user.username;
+            document.getElementById('profile-username-sub').innerText = '@' + user.username;
             document.getElementById('profile-avatar').src = user.avatar || 'https://via.placeholder.com/100';
             document.getElementById('profile-coins').innerText = (user.coins || 0) + ' Xu';
             document.getElementById('profile-reputation').innerText = `Cấp danh tiếng: ${rep.title} (${rep.likes} lượt thích)`;
@@ -552,6 +578,33 @@
                 `).join('');
             }
             showSection('profile');
+        }
+
+        // Đổi Biệt Danh
+        function openChangeNicknameModal() {
+            document.getElementById('nickname-input').value = currentUser.nickname || currentUser.username;
+            openModal('modal-nickname');
+        }
+
+        function saveNewNickname() {
+            const newNick = document.getElementById('nickname-input').value.trim();
+            if (!newNick) return;
+
+            const user = db.users.find(u => u.username === currentUser.username);
+            user.nickname = newNick;
+
+            // Cập nhật biệt danh trên tất cả truyện đã tạo
+            db.stories.forEach(s => {
+                if (s.author === currentUser.username) {
+                    s.authorNickname = newNick;
+                }
+            });
+
+            saveData();
+            closeModal('modal-nickname');
+            showProfile(currentUser.username);
+            updateNav();
+            alert('Đã cập nhật biệt danh thành công!');
         }
 
         // Avatar Upload
@@ -607,9 +660,10 @@
             }
         }
 
-        function handleAuthorClick(authorName) {
-            selectedAuthorName = authorName;
-            document.getElementById('author-modal-title').innerText = authorName;
+        function handleAuthorClick(authorUsername) {
+            selectedAuthorName = authorUsername;
+            const authorDisplayName = getUserDisplayName(authorUsername);
+            document.getElementById('author-modal-title').innerText = authorDisplayName;
             openModal('modal-author-options');
         }
 
@@ -622,15 +676,16 @@
             }
         }
 
-        function showAuthorProfile(authorName) {
-            const user = db.users.find(u => u.username === authorName);
-            const rep = calculateReputation(authorName);
+        function showAuthorProfile(authorUsername) {
+            const user = db.users.find(u => u.username === authorUsername);
+            const rep = calculateReputation(authorUsername);
+            const displayName = getUserDisplayName(authorUsername);
             
-            document.getElementById('author-profile-name').innerText = authorName;
+            document.getElementById('author-profile-name').innerText = displayName;
             document.getElementById('author-profile-avatar').src = (user && user.avatar) ? user.avatar : 'https://via.placeholder.com/100';
             document.getElementById('author-profile-rep').innerText = `Cấp danh tiếng: ${rep.title} (${rep.likes} lượt thích)`;
 
-            const authorStories = db.stories.filter(s => s.author === authorName);
+            const authorStories = db.stories.filter(s => s.author === authorUsername);
             const list = document.getElementById('author-profile-stories');
 
             if (authorStories.length === 0) {
@@ -655,7 +710,8 @@
                 openAuthModal(true);
                 return;
             }
-            document.getElementById('donate-target-label').innerText = `Đang tặng cho tác giả: ${selectedAuthorName}`;
+            const displayName = getUserDisplayName(selectedAuthorName);
+            document.getElementById('donate-target-label').innerText = `Đang tặng cho tác giả: ${displayName}`;
             openModal('modal-donate');
         }
 
@@ -686,7 +742,7 @@
             receiver.coins = (receiver.coins || 0) + amount;
             saveData();
             closeModal('modal-donate');
-            alert(`Tặng thành công ${amount} Xu cho tác giả ${selectedAuthorName}!`);
+            alert(`Tặng thành công ${amount} Xu cho tác giả ${getUserDisplayName(selectedAuthorName)}!`);
         }
 
         function renderStories() {
@@ -698,7 +754,10 @@
             let stories = [...db.stories];
 
             if (searchQuery) {
-                stories = stories.filter(s => s.title.toLowerCase().includes(searchQuery) || s.author.toLowerCase().includes(searchQuery));
+                stories = stories.filter(s => {
+                    const authorName = getUserDisplayName(s.author).toLowerCase();
+                    return s.title.toLowerCase().includes(searchQuery) || authorName.includes(searchQuery);
+                });
             }
 
             if (categoryFilter !== 'all') {
@@ -714,22 +773,25 @@
                 return;
             }
 
-            grid.innerHTML = stories.map(s => `
-                <div class="bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition flex flex-col justify-between">
-                    <img src="${s.cover || 'https://via.placeholder.com/300x400?text=No+Cover'}" class="w-full h-48 object-cover cursor-pointer" onclick="viewStory('${s.id}')">
-                    <div class="p-3 flex-grow flex flex-col justify-between">
-                        <div>
-                            <h3 class="font-bold text-slate-800 line-clamp-1 cursor-pointer" onclick="viewStory('${s.id}')">${s.title}</h3>
-                            <p class="text-xs text-indigo-600 font-semibold mt-1 cursor-pointer hover:underline" onclick="handleAuthorClick('${s.author}')">Tác giả: ${s.author}</p>
-                            <p class="text-xs text-slate-500 line-clamp-2 mt-1">${s.desc}</p>
-                        </div>
-                        <div class="flex justify-between items-center text-xs text-slate-400 mt-3 pt-2 border-t">
-                            <span><i class="fa-regular fa-eye"></i> ${s.views || 0}</span>
-                            <span><i class="fa-regular fa-heart text-red-500"></i> ${(s.likes || []).length}</span>
+            grid.innerHTML = stories.map(s => {
+                const authorDisplay = getUserDisplayName(s.author);
+                return `
+                    <div class="bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-md transition flex flex-col justify-between">
+                        <img src="${s.cover || 'https://via.placeholder.com/300x400?text=No+Cover'}" class="w-full h-48 object-cover cursor-pointer" onclick="viewStory('${s.id}')">
+                        <div class="p-3 flex-grow flex flex-col justify-between">
+                            <div>
+                                <h3 class="font-bold text-slate-800 line-clamp-1 cursor-pointer" onclick="viewStory('${s.id}')">${s.title}</h3>
+                                <p class="text-xs text-indigo-600 font-semibold mt-1 cursor-pointer hover:underline" onclick="handleAuthorClick('${s.author}')">Tác giả: ${authorDisplay}</p>
+                                <p class="text-xs text-slate-500 line-clamp-2 mt-1">${s.desc}</p>
+                            </div>
+                            <div class="flex justify-between items-center text-xs text-slate-400 mt-3 pt-2 border-t">
+                                <span><i class="fa-regular fa-eye"></i> ${s.views || 0}</span>
+                                <span><i class="fa-regular fa-heart text-red-500"></i> ${(s.likes || []).length}</span>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function viewStory(storyId) {
@@ -742,6 +804,7 @@
 
             const isLiked = currentUser && (story.likes || []).includes(currentUser.username);
             const isOwner = currentUser && (currentUser.username === story.author || currentUser.role === 'admin');
+            const authorDisplay = getUserDisplayName(story.author);
 
             const detailBox = document.getElementById('story-detail-content');
             detailBox.innerHTML = `
@@ -757,7 +820,7 @@
                                 </div>
                             ` : ''}
                         </div>
-                        <p class="text-xs text-indigo-600 font-semibold cursor-pointer hover:underline" onclick="handleAuthorClick('${story.author}')">Tác giả: ${story.author}</p>
+                        <p class="text-xs text-indigo-600 font-semibold cursor-pointer hover:underline" onclick="handleAuthorClick('${story.author}')">Tác giả: ${authorDisplay}</p>
                         <p class="text-sm text-slate-600 leading-relaxed">${story.desc}</p>
                         <div class="flex gap-4 items-center pt-2">
                             <button onclick="toggleLike('${story.id}')" class="px-4 py-2 border rounded-lg text-sm flex items-center gap-2 ${isLiked ? 'bg-red-50 border-red-200 text-red-600 font-bold' : 'text-slate-600'}">
@@ -829,10 +892,8 @@
                         return;
                     }
 
-                    // Trừ xu người đọc
                     freshUser.coins -= chap.price;
 
-                    // Cộng xu thu thập trực tiếp cho tác giả
                     const author = db.users.find(u => u.username === story.author);
                     if (author) author.coins = (author.coins || 0) + chap.price;
 
@@ -879,7 +940,7 @@
             list.innerHTML = comments.map((cmt, idx) => `
                 <div class="bg-slate-50 p-3 rounded-lg flex justify-between items-start">
                     <div>
-                        <span class="font-bold text-xs text-indigo-600 cursor-pointer hover:underline" onclick="handleAuthorClick('${cmt.user}')">${cmt.user}</span>
+                        <span class="font-bold text-xs text-indigo-600 cursor-pointer hover:underline" onclick="handleAuthorClick('${cmt.user}')">${getUserDisplayName(cmt.user)}</span>
                         <p class="text-sm text-slate-700 mt-0.5">${cmt.text}</p>
                     </div>
                     ${currentUser && currentUser.role === 'admin' ? `
@@ -942,7 +1003,7 @@
             list.innerHTML = db.users.map(u => `
                 <div class="py-3 flex justify-between items-center">
                     <div>
-                        <span class="font-bold text-sm">${u.username}</span>
+                        <span class="font-bold text-sm">${u.nickname || u.username} (@${u.username})</span>
                         <span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded ml-2 font-bold">${u.coins || 0} Xu</span>
                         ${u.banned ? '<span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded ml-1 font-bold">Đã cấm</span>' : ''}
                     </div>
@@ -970,12 +1031,12 @@
         }
 
         function adminGiveCoins(username) {
-            const amount = prompt(`Nhập số Xu muốn tặng cho ${username}:`, '100');
+            const amount = prompt(`Nhập số Xu muốn tặng cho ${getUserDisplayName(username)}:`, '100');
             if (amount && !isNaN(amount)) {
                 const user = db.users.find(u => u.username === username);
                 user.coins = (user.coins || 0) + parseInt(amount);
                 saveData();
-                alert(`Đã tặng ${amount} Xu cho ${username}!`);
+                alert(`Đã tặng ${amount} Xu cho ${getUserDisplayName(username)}!`);
             }
         }
 
@@ -983,7 +1044,7 @@
             const user = db.users.find(u => u.username === username);
             user.banned = !user.banned;
             saveData();
-            alert(`Đã ${user.banned ? 'CẤM' : 'GỠ CẤM'} tài khoản ${username}!`);
+            alert(`Đã ${user.banned ? 'CẤM' : 'GỠ CẤM'} tài khoản ${getUserDisplayName(username)}!`);
         }
 
         function deleteStory(storyId) {
@@ -1038,11 +1099,11 @@
 
         function handleAuth(e) {
             e.preventDefault();
-            const un = document.getElementById('auth-username').value.trim();
+            const un = document.getElementById('auth-username').value.trim().toLowerCase();
             const pw = document.getElementById('auth-password').value.trim();
 
             if (isAuthLogin) {
-                const user = db.users.find(u => u.username === un && u.password === pw);
+                const user = db.users.find(u => u.username.toLowerCase() === un && u.password === pw);
                 if (!user) {
                     alert('Sai tên đăng nhập hoặc mật khẩu!');
                     return;
@@ -1053,17 +1114,27 @@
                 }
                 currentUser = user;
             } else {
-                if (db.users.find(u => u.username === un)) {
-                    alert('Tên đăng nhập đã tồn tại!');
+                // Kiểm tra chống trùng tên đăng nhập
+                if (db.users.some(u => u.username.toLowerCase() === un)) {
+                    alert('Tên đăng nhập này đã có người sử dụng! Vui lòng chọn tên khác.');
                     return;
                 }
-                const newUser = { username: un, password: pw, coins: 50, role: 'user', avatar: 'https://via.placeholder.com/100', banned: false };
+                const newUser = { 
+                    username: un, 
+                    nickname: un, 
+                    password: pw, 
+                    coins: 50, 
+                    role: 'user', 
+                    avatar: 'https://via.placeholder.com/100', 
+                    banned: false 
+                };
                 db.users.push(newUser);
                 currentUser = newUser;
             }
             saveData();
             closeModal('modal-auth');
             document.getElementById('auth-form').reset();
+            updateNav();
         }
 
         function logout() {
@@ -1086,6 +1157,7 @@
                 title: title,
                 desc: desc,
                 author: currentUser.username,
+                authorNickname: currentUser.nickname || currentUser.username,
                 cover: '',
                 views: 0,
                 likes: [],
