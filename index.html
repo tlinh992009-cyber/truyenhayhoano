@@ -6,6 +6,11 @@
     <title>Truyện Hay Ho Nở - Đọc & Sáng Tác Truyện Online</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Firebase SDK (v9 Compatibility) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
     <style>
         .comic-container img {
             display: block !important;
@@ -30,7 +35,7 @@
         </div>
     </header>
 
-    <!-- Global Announcement Banner -->
+    <!-- Global Announcement Banner (Màu dịu mát) -->
     <div id="global-announcement" class="hidden bg-indigo-50 text-indigo-700 border-b border-indigo-100 px-4 py-2 text-center text-sm font-medium shadow-sm">
         <!-- Dynamic Announcement -->
     </div>
@@ -38,7 +43,7 @@
     <!-- Main Content Container -->
     <main class="max-w-6xl mx-auto px-4 py-6 flex-grow w-full">
         
-        <!-- SECTION: Home / danh sách truyện -->
+        <!-- SECTION: Home -->
         <section id="sec-home" class="space-y-6">
             <div class="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 rounded-xl shadow-sm">
                 <div class="relative w-full md:w-96">
@@ -114,7 +119,7 @@
             </div>
         </section>
 
-        <!-- SECTION: Profile / Trang Cá Nhân -->
+        <!-- SECTION: Profile -->
         <section id="sec-profile" class="hidden space-y-6">
             <div class="bg-white rounded-xl p-6 shadow-sm space-y-4">
                 <div class="flex justify-between items-center border-b pb-4">
@@ -133,7 +138,7 @@
             </div>
         </section>
 
-        <!-- SECTION: Author Public Profile / Kiểm Tra Tài Khoản Tác Giả Khác -->
+        <!-- SECTION: Author Public Profile -->
         <section id="sec-author-profile" class="hidden space-y-6">
             <button onclick="showSection('home')" class="text-indigo-600 hover:underline flex items-center gap-1 font-semibold">
                 <i class="fa-solid fa-arrow-left"></i> Quay lại trang chủ
@@ -214,7 +219,7 @@
         </div>
     </div>
 
-    <!-- MODAL: Donate Coins to Author -->
+    <!-- MODAL: Donate -->
     <div id="modal-donate" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl p-6 max-w-sm w-full space-y-4 shadow-xl">
             <div class="flex justify-between items-center border-b pb-2">
@@ -231,7 +236,7 @@
         </div>
     </div>
 
-    <!-- MODAL: Author Options (Check Profile or Donate) -->
+    <!-- MODAL: Author Options -->
     <div id="modal-author-options" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl p-6 max-w-xs w-full space-y-3 shadow-xl text-center">
             <h3 id="author-modal-title" class="font-bold text-lg border-b pb-2">Tên Tác Giả</h3>
@@ -301,10 +306,17 @@
 
     <!-- SCRIPT LOGIC -->
     <script>
+        // Cấu hình Firebase Realtime Database công khai
+        const firebaseConfig = {
+            databaseURL: "https://truyenhayhoano-default-rtdb.asia-southeast1.firebasedatabase.app"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
         let db = {
-            users: JSON.parse(localStorage.getItem('thn_users')) || [],
-            stories: JSON.parse(localStorage.getItem('thn_stories')) || [],
-            settings: JSON.parse(localStorage.getItem('thn_settings')) || {
+            users: [],
+            stories: [],
+            settings: {
                 adLink: 'https://www.google.com',
                 background: '#f1f5f9',
                 announcement: 'Chào mừng bạn đến với trang web đọc & sáng tác Truyện Hay Ho Nở!'
@@ -316,7 +328,29 @@
         let selectedAuthorName = null;
         let isAuthLogin = true;
 
-        (function initAdmin() {
+        // Lắng nghe dữ liệu trực tuyến từ Firebase Mây
+        database.ref('truyenhayhoano_db').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                db.users = data.users || [];
+                db.stories = data.stories || [];
+                db.settings = data.settings || db.settings;
+            }
+            initAdminAndRender();
+        });
+
+        function saveData() {
+            database.ref('truyenhayhoano_db').set({
+                users: db.users,
+                stories: db.stories,
+                settings: db.settings
+            });
+            if (currentUser) {
+                localStorage.setItem('thn_currentUser', JSON.stringify(currentUser));
+            }
+        }
+
+        function initAdminAndRender() {
             const adminExists = db.users.find(u => u.username === 'quantrithuylinh');
             if (!adminExists) {
                 db.users.push({
@@ -328,14 +362,21 @@
                 });
                 saveData();
             }
-            applySiteSettings();
-        })();
 
-        function saveData() {
-            localStorage.setItem('thn_users', JSON.stringify(db.users));
-            localStorage.setItem('thn_stories', JSON.stringify(db.stories));
-            localStorage.setItem('thn_settings', JSON.stringify(db.settings));
-            localStorage.setItem('thn_currentUser', JSON.stringify(currentUser));
+            if (currentUser) {
+                const freshUser = db.users.find(u => u.username === currentUser.username);
+                if (freshUser && freshUser.banned) {
+                    alert('Tài khoản của bạn đã bị cấm truy cập hệ thống!');
+                    currentUser = null;
+                    localStorage.removeItem('thn_currentUser');
+                } else if (freshUser) {
+                    currentUser = freshUser;
+                }
+            }
+
+            applySiteSettings();
+            updateNav();
+            renderStories();
         }
 
         function applySiteSettings() {
@@ -360,19 +401,12 @@
             }
         }
 
-        if (currentUser) {
-            const freshUser = db.users.find(u => u.username === currentUser.username);
-            if (freshUser && freshUser.banned) {
-                alert('Tài khoản của bạn đã bị cấm truy cập hệ thống!');
-                currentUser = null;
-                saveData();
-            }
-        }
-
         function calculateReputation(authorName) {
             const authorStories = db.stories.filter(s => s.author === authorName);
             let totalLikes = 0;
-            authorStories.forEach(s => totalLikes += s.likes.length);
+            authorStories.forEach(s => {
+                if (s.likes) totalLikes += s.likes.length;
+            });
 
             if (totalLikes >= 10000) return { title: 'Kim Cương', likes: totalLikes };
             if (totalLikes >= 1000) return { title: 'Vàng', likes: totalLikes };
@@ -413,7 +447,6 @@
             if (sectionId === 'admin') renderAdminPanel();
         }
 
-        // Show My Profile
         function showProfile(username) {
             const user = db.users.find(u => u.username === username);
             if (!user) return;
@@ -435,7 +468,7 @@
                             <img src="${s.cover || 'https://via.placeholder.com/150'}" class="w-16 h-20 object-cover rounded">
                             <div>
                                 <h4 class="font-bold text-sm text-slate-800">${s.title}</h4>
-                                <p class="text-xs text-slate-500 mt-1">${s.chapters.length} chương - ${s.views} lượt xem</p>
+                                <p class="text-xs text-slate-500 mt-1">${(s.chapters||[]).length} chương - ${s.views||0} lượt xem</p>
                             </div>
                         </div>
                         <button onclick="deleteStory('${s.id}')" class="px-3 py-1.5 bg-red-600 text-white text-xs rounded hover:bg-red-700">
@@ -447,7 +480,6 @@
             showSection('profile');
         }
 
-        // Click author to show options
         function handleAuthorClick(authorName) {
             selectedAuthorName = authorName;
             document.getElementById('author-modal-title').innerText = authorName;
@@ -480,7 +512,7 @@
                         <img src="${s.cover || 'https://via.placeholder.com/150'}" class="w-16 h-20 object-cover rounded">
                         <div>
                             <h4 class="font-bold text-sm text-slate-800">${s.title}</h4>
-                            <p class="text-xs text-slate-500 mt-1">${s.chapters.length} chương - ${s.views} lượt xem</p>
+                            <p class="text-xs text-slate-500 mt-1">${(s.chapters||[]).length} chương - ${s.views||0} lượt xem</p>
                         </div>
                     </div>
                 `).join('');
@@ -508,7 +540,6 @@
                 return;
             }
 
-            // Admin tặng không cần điều kiện
             if (sender.role !== 'admin') {
                 if (sender.coins < amount) {
                     alert('Bạn không đủ xu trong tài khoản để tặng!');
@@ -519,17 +550,15 @@
 
             receiver.coins += amount;
             saveData();
-            updateNav();
             closeModal('modal-donate');
             alert(`Tặng thành công ${amount} Xu cho tác giả ${selectedAuthorName}!`);
         }
 
-        // Render Stories Home
         function renderStories() {
             const grid = document.getElementById('story-grid');
-            const searchQuery = document.getElementById('search-input').value.toLowerCase().trim();
-            const categoryFilter = document.getElementById('category-filter').value;
-            const sortBy = document.getElementById('sort-filter').value;
+            const searchQuery = document.getElementById('search-input') ? document.getElementById('search-input').value.toLowerCase().trim() : '';
+            const categoryFilter = document.getElementById('category-filter') ? document.getElementById('category-filter').value : 'all';
+            const sortBy = document.getElementById('sort-filter') ? document.getElementById('sort-filter').value : 'newest';
 
             let stories = [...db.stories];
 
@@ -538,12 +567,12 @@
             }
 
             if (categoryFilter !== 'all') {
-                stories = stories.filter(s => s.chapters.some(c => c.type === categoryFilter));
+                stories = stories.filter(s => (s.chapters || []).some(c => c.type === categoryFilter));
             }
 
             if (sortBy === 'newest') stories.reverse();
-            if (sortBy === 'views') stories.sort((a, b) => b.views - a.views);
-            if (sortBy === 'likes') stories.sort((a, b) => b.likes.length - a.likes.length);
+            if (sortBy === 'views') stories.sort((a, b) => (b.views || 0) - (a.views || 0));
+            if (sortBy === 'likes') stories.sort((a, b) => ((b.likes || []).length) - ((a.likes || []).length));
 
             if (stories.length === 0) {
                 grid.innerHTML = `<div class="col-span-full text-center py-10 text-slate-400">Không tìm thấy bộ truyện nào phù hợp.</div>`;
@@ -560,8 +589,8 @@
                             <p class="text-xs text-slate-500 line-clamp-2 mt-1">${s.desc}</p>
                         </div>
                         <div class="flex justify-between items-center text-xs text-slate-400 mt-3 pt-2 border-t">
-                            <span><i class="fa-regular fa-eye"></i> ${s.views}</span>
-                            <span><i class="fa-regular fa-heart text-red-500"></i> ${s.likes.length}</span>
+                            <span><i class="fa-regular fa-eye"></i> ${s.views || 0}</span>
+                            <span><i class="fa-regular fa-heart text-red-500"></i> ${(s.likes || []).length}</span>
                         </div>
                     </div>
                 </div>
@@ -573,10 +602,10 @@
             const story = db.stories.find(s => s.id === storyId);
             if (!story) return;
 
-            story.views += 1;
+            story.views = (story.views || 0) + 1;
             saveData();
 
-            const isLiked = currentUser && story.likes.includes(currentUser.username);
+            const isLiked = currentUser && (story.likes || []).includes(currentUser.username);
             const isOwner = currentUser && (currentUser.username === story.author || currentUser.role === 'admin');
 
             const detailBox = document.getElementById('story-detail-content');
@@ -595,7 +624,7 @@
                         <div class="flex gap-4 items-center pt-2">
                             <button onclick="toggleLike('${story.id}')" class="px-4 py-2 border rounded-lg text-sm flex items-center gap-2 ${isLiked ? 'bg-red-50 border-red-200 text-red-600 font-bold' : 'text-slate-600'}">
                                 <i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart text-red-500"></i>
-                                <span>${story.likes.length} Thích</span>
+                                <span>${(story.likes || []).length} Thích</span>
                             </button>
                             <span class="text-xs text-slate-400"><i class="fa-regular fa-eye"></i> ${story.views} lượt xem</span>
                         </div>
@@ -612,13 +641,15 @@
             const list = document.getElementById('chapter-list');
             const isOwner = currentUser && (currentUser.username === story.author || currentUser.role === 'admin');
 
-            if (story.chapters.length === 0) {
+            const chapters = story.chapters || [];
+            if (chapters.length === 0) {
                 list.innerHTML = `<div class="py-4 text-slate-400 text-sm">Chưa có chương nào.</div>`;
                 return;
             }
 
-            list.innerHTML = story.chapters.map((c, index) => {
-                const isUnlocked = c.price === 0 || (currentUser && (c.unlockedBy.includes(currentUser.username) || isOwner));
+            list.innerHTML = chapters.map((c, index) => {
+                const unlockedBy = c.unlockedBy || [];
+                const isUnlocked = c.price === 0 || (currentUser && (unlockedBy.includes(currentUser.username) || isOwner));
                 return `
                     <div class="py-3 flex justify-between items-center hover:bg-slate-50 px-2 rounded">
                         <div class="cursor-pointer" onclick="readChapter('${c.id}')">
@@ -641,9 +672,10 @@
         function readChapter(chapId) {
             activeChapterId = chapId;
             const story = db.stories.find(s => s.id === activeStoryId);
-            const chap = story.chapters.find(c => c.id === chapId);
+            const chap = (story.chapters || []).find(c => c.id === chapId);
             const isOwner = currentUser && (currentUser.username === story.author || currentUser.role === 'admin');
 
+            if (!chap.unlockedBy) chap.unlockedBy = [];
             const isUnlocked = chap.price === 0 || (currentUser && (chap.unlockedBy.includes(currentUser.username) || isOwner));
 
             if (!isUnlocked) {
@@ -664,7 +696,6 @@
 
                     chap.unlockedBy.push(currentUser.username);
                     saveData();
-                    updateNav();
                     alert('Mở khóa chương thành công!');
                 } else {
                     return;
@@ -677,7 +708,7 @@
             if (chap.type === 'text') {
                 contentHtml = `<p class="whitespace-pre-line text-slate-700 leading-relaxed text-base">${chap.content}</p>`;
             } else if (chap.type === 'comic') {
-                contentHtml = `<div class="comic-container flex flex-col w-full">${chap.content.map(img => `<img src="${img}" class="w-full border-0 p-0 m-0 block">`).join('')}</div>`;
+                contentHtml = `<div class="comic-container flex flex-col w-full">${(chap.content || []).map(img => `<img src="${img}" class="w-full border-0 p-0 m-0 block">`).join('')}</div>`;
             } else if (chap.type === 'audio') {
                 contentHtml = `<audio controls class="w-full mt-4"><source src="${chap.content}" type="audio/mpeg"></audio>`;
             }
@@ -697,12 +728,13 @@
 
         function renderComments(chap) {
             const list = document.getElementById('comments-list');
-            if (!chap.comments || chap.comments.length === 0) {
+            const comments = chap.comments || [];
+            if (comments.length === 0) {
                 list.innerHTML = `<p class="text-xs text-slate-400">Chưa có bình luận nào.</p>`;
                 return;
             }
 
-            list.innerHTML = chap.comments.map((cmt, idx) => `
+            list.innerHTML = comments.map((cmt, idx) => `
                 <div class="bg-slate-50 p-3 rounded-lg flex justify-between items-start">
                     <div>
                         <span class="font-bold text-xs text-indigo-600 cursor-pointer hover:underline" onclick="handleAuthorClick('${cmt.user}')">${cmt.user}</span>
@@ -726,7 +758,7 @@
             if (!text) return;
 
             const story = db.stories.find(s => s.id === activeStoryId);
-            const chap = story.chapters.find(c => c.id === activeChapterId);
+            const chap = (story.chapters || []).find(c => c.id === activeChapterId);
             if (!chap.comments) chap.comments = [];
 
             chap.comments.push({ user: currentUser.username, text: text });
@@ -742,6 +774,7 @@
                 return;
             }
             const story = db.stories.find(s => s.id === storyId);
+            if (!story.likes) story.likes = [];
             const index = story.likes.indexOf(currentUser.username);
             if (index > -1) {
                 story.likes.splice(index, 1);
@@ -788,7 +821,6 @@
             db.settings.announcement = document.getElementById('admin-announcement').value.trim();
 
             saveData();
-            applySiteSettings();
             alert('Đã lưu cấu hình trang web thành công!');
         }
 
@@ -798,8 +830,6 @@
                 const user = db.users.find(u => u.username === username);
                 user.coins += parseInt(amount);
                 saveData();
-                renderAdminPanel();
-                updateNav();
                 alert(`Đã tặng ${amount} Xu cho ${username}!`);
             }
         }
@@ -808,7 +838,6 @@
             const user = db.users.find(u => u.username === username);
             user.banned = !user.banned;
             saveData();
-            renderAdminPanel();
             alert(`Đã ${user.banned ? 'CẤM' : 'GỠ CẤM'} tài khoản ${username}!`);
         }
 
@@ -823,7 +852,7 @@
         function deleteChapter(storyId, chapId) {
             if (confirm('Bạn có chắc muốn xóa chương này?')) {
                 const story = db.stories.find(s => s.id === storyId);
-                story.chapters = story.chapters.filter(c => c.id !== chapId);
+                story.chapters = (story.chapters || []).filter(c => c.id !== chapId);
                 saveData();
                 viewStory(storyId);
             }
@@ -832,7 +861,7 @@
         function deleteComment(commentIdx) {
             if (confirm('Bạn có chắc muốn xóa bình luận này?')) {
                 const story = db.stories.find(s => s.id === activeStoryId);
-                const chap = story.chapters.find(c => c.id === activeChapterId);
+                const chap = (story.chapters || []).find(c => c.id === activeChapterId);
                 chap.comments.splice(commentIdx, 1);
                 saveData();
                 renderComments(chap);
@@ -847,7 +876,6 @@
             const user = db.users.find(u => u.username === currentUser.username);
             user.coins += 20;
             saveData();
-            updateNav();
             alert('Bạn nhận được +20 Xu khi xem quảng cáo!');
         }
 
@@ -889,14 +917,13 @@
                 currentUser = newUser;
             }
             saveData();
-            updateNav();
             closeModal('modal-auth');
             document.getElementById('auth-form').reset();
         }
 
         function logout() {
             currentUser = null;
-            saveData();
+            localStorage.removeItem('thn_currentUser');
             updateNav();
             showSection('home');
         }
@@ -927,14 +954,12 @@
                     db.stories.push(newStory);
                     saveData();
                     closeModal('modal-story');
-                    renderStories();
                 };
                 reader.readAsDataURL(coverInput.files[0]);
             } else {
                 db.stories.push(newStory);
                 saveData();
                 closeModal('modal-story');
-                renderStories();
             }
         }
 
@@ -954,6 +979,7 @@
             const type = document.querySelector('input[name="chap-type"]:checked').value;
 
             const story = db.stories.find(s => s.id === activeStoryId);
+            if (!story.chapters) story.chapters = [];
 
             const newChap = {
                 id: 'c_' + Date.now(),
@@ -1005,9 +1031,6 @@
 
         function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-
-        updateNav();
-        renderStories();
     </script>
 </body>
 </html>
