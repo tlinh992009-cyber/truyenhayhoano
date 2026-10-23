@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Truyện hay Gn - Nền Tảng Sáng Tác & Đọc Truyện Đa Thiết Bị</title>
+    <title>Truyện hay Gn - Nền Tảng Sáng Tác & Đọc Truyện</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -28,6 +28,11 @@
             width: 100%;
             border: none;
         }
+
+        .modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+        }
     </style>
 </head>
 <body id="mainBody" class="bg-gray-900 text-gray-100 min-h-screen flex flex-col">
@@ -39,36 +44,39 @@
     </div>
 
     <!-- Header / Navbar -->
-    <header class="bg-gray-800 border-b border-gray-700 sticky top-0 z-50">
+    <header class="bg-gray-800 border-b border-gray-700 sticky top-0 z-40 shadow-lg">
         <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-3">
                 <button id="backBtn" onclick="goBack()" class="hidden bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1">
                     <i class="fas fa-arrow-left"></i> <span>Quay lại</span>
                 </button>
-                <h1 class="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent cursor-pointer" onclick="switchView('home')">Truyện hay Gn</h1>
+                <h1 class="text-xl font-extrabold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent cursor-pointer tracking-wide" onclick="switchView('home')">Truyện hay Gn</h1>
             </div>
 
             <!-- Thanh tìm kiếm -->
-            <div class="hidden md:flex items-center space-x-2 bg-gray-700 rounded-lg px-3 py-1.5 w-1/3">
+            <div class="hidden md:flex items-center space-x-2 bg-gray-700/80 border border-gray-600 rounded-lg px-3 py-1.5 w-1/3 focus-within:border-purple-500 transition">
                 <i class="fas fa-search text-gray-400"></i>
-                <input type="text" id="globalSearchInput" placeholder="Tìm tên truyện, thể loại, kiểu hình, tác giả..." class="bg-transparent border-none focus:outline-none text-sm w-full text-white" oninput="handleGlobalSearch(this.value)">
+                <input type="text" id="globalSearchInput" placeholder="Tìm tên truyện, thể loại, kiểu hình, tác giả..." class="bg-transparent border-none focus:outline-none text-sm w-full text-white placeholder-gray-400" oninput="handleGlobalSearch(this.value)">
             </div>
 
-            <div class="flex items-center space-x-3" id="authNavSection">
-                <!-- Trạng thái đăng nhập -->
-            </div>
+            <div class="flex items-center space-x-3" id="authNavSection"></div>
         </div>
     </header>
 
     <!-- Main Container -->
-    <main class="flex-grow max-w-7xl w-full mx-auto p-4" id="appMainContent">
-        <!-- Nội dung động -->
-    </main>
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4" id="appMainContent"></main>
 
     <!-- Footer -->
     <footer class="bg-gray-800 border-t border-gray-700 py-4 text-center text-sm text-gray-400">
-        <p>&copy; 2026 Truyện hay Gn - Nền tảng Sáng Tác & Đọc Truyện Đa Thiết Bị.</p>
+        <p>&copy; 2026 Truyện hay Gn - Nền tảng Sáng Tác & Đọc Truyện Chuyên Nghiệp.</p>
     </footer>
+
+    <!-- DYNAMIC CUSTOM MODAL CONTAINER -->
+    <div id="customModalContainer" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
+        <div id="customModalBox" class="bg-gray-800 border border-gray-700 rounded-3xl shadow-2xl max-w-lg w-full p-6 space-y-4 relative text-gray-100">
+            <!-- Modal Content Loaded Dynamically -->
+        </div>
+    </div>
 
     <!-- Firebase SDKs & App Logic Module -->
     <script type="module">
@@ -94,6 +102,11 @@
         window.currentProfile = null;
         window.currentView = 'home';
         window.historyStack = [];
+        window.systemConfig = {
+            adLink: "https://google.com",
+            adRewardCoins: 20,
+            dailyCheckinCoins: 50
+        };
 
         window.fbSignIn = signInWithEmailAndPassword;
         window.fbCreateUser = createUserWithEmailAndPassword;
@@ -113,6 +126,16 @@
         window.orderBy = orderBy;
         window.serverTimestamp = serverTimestamp;
 
+        async function loadSystemConfig() {
+            try {
+                const sysDoc = await getDoc(doc(db, "settings", "system"));
+                if (sysDoc.exists()) {
+                    window.systemConfig = { ...window.systemConfig, ...sysDoc.data() };
+                }
+            } catch(e) {}
+        }
+        loadSystemConfig();
+
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 window.currentUser = user;
@@ -120,6 +143,7 @@
                 const userSnap = await getDoc(userDocRef);
                 if (userSnap.exists()) {
                     window.currentProfile = userSnap.data();
+                    if (!window.currentProfile.unlockedChapters) window.currentProfile.unlockedChapters = [];
                 } else {
                     const isQuanLy = user.email === 'quanly@storyverse.internal';
                     window.currentProfile = {
@@ -133,7 +157,9 @@
                         hearts: isQuanLy ? 2000000 : 0,
                         dailyCoinExchanges: 0,
                         lastExchangeDate: '',
-                        viewedStories: []
+                        lastCheckinDate: '',
+                        viewedStories: [],
+                        unlockedChapters: []
                     };
                     await setDoc(userDocRef, window.currentProfile);
                 }
@@ -145,7 +171,6 @@
             renderHome();
         });
 
-        // Đăng nhập
         window.handleLoginSubmit = async function(e) {
             e.preventDefault();
             const identifier = document.getElementById('loginEmail').value.trim();
@@ -177,10 +202,12 @@
                             hearts: 2000000,
                             dailyCoinExchanges: 0,
                             lastExchangeDate: '',
-                            viewedStories: []
+                            lastCheckinDate: '',
+                            viewedStories: [],
+                            unlockedChapters: []
                         };
                         await window.setDoc(window.doc(window.db, "users", cred.user.uid), adminProfile);
-                        alert("Khởi tạo thành công tài khoản Quản Lý!");
+                        alert("Khởi tạo tài khoản Quản Lý thành công!");
                         switchView('home');
                         return;
                     } catch (createErr) {
@@ -192,7 +219,6 @@
             }
         };
 
-        // Đăng ký
         window.handleRegisterSubmit = async function(e) {
             e.preventDefault();
             const username = document.getElementById('regUsername').value.trim().toLowerCase();
@@ -226,7 +252,9 @@
                     hearts: 0,
                     dailyCoinExchanges: 0,
                     lastExchangeDate: '',
-                    viewedStories: []
+                    lastCheckinDate: '',
+                    viewedStories: [],
+                    unlockedChapters: []
                 };
                 await window.setDoc(window.doc(window.db, "users", cred.user.uid), userProfile);
                 alert("Đăng ký tài khoản thành công!");
@@ -264,6 +292,26 @@
             }
         }
 
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        function showCustomModal(htmlContent) {
+            const container = document.getElementById('customModalContainer');
+            const box = document.getElementById('customModalBox');
+            box.innerHTML = htmlContent;
+            container.classList.remove('hidden');
+        }
+
+        function closeCustomModal() {
+            document.getElementById('customModalContainer').classList.add('hidden');
+        }
+
         function renderCurrentView() {
             const content = document.getElementById('appMainContent');
             content.innerHTML = '';
@@ -272,7 +320,8 @@
                 case 'auth': renderAuthPage(); break;
                 case 'studio': renderStudioPage(); break;
                 case 'create-story': renderCreateStoryPage(); break;
-                case 'read-story': renderReadStoryPage(window.currentParams.storyId); break;
+                case 'story-detail': renderStoryDetailPage(window.currentParams.storyId); break;
+                case 'read-chapter': renderReadChapterPage(window.currentParams.storyId, window.currentParams.chapterIndex); break;
                 case 'author-profile': renderAuthorProfilePage(window.currentParams.authorId); break;
                 case 'messages': renderMessagesPage(); break;
                 case 'coins': renderCoinsPage(); break;
@@ -285,30 +334,30 @@
             const nav = document.getElementById('authNavSection');
             if (!window.currentUser || !window.currentProfile) {
                 nav.innerHTML = `
-                    <button onclick="switchView('auth')" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-medium transition">Đăng nhập / Đăng ký</button>
+                    <button onclick="switchView('auth')" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 px-4 py-2 rounded-xl text-sm font-bold shadow-md transition">Đăng nhập / Đăng ký</button>
                 `;
             } else {
                 const p = window.currentProfile;
                 const isAdmin = p.username === 'quanly';
                 nav.innerHTML = `
                     <div class="flex items-center space-x-2">
-                        <button onclick="switchView('coins')" class="bg-yellow-600/20 border border-yellow-500 text-yellow-400 px-2.5 py-1 rounded-full text-xs font-bold flex items-center space-x-1">
+                        <button onclick="switchView('coins')" class="bg-yellow-600/20 border border-yellow-500 text-yellow-400 px-2.5 py-1 rounded-full text-xs font-bold flex items-center space-x-1 shadow-sm hover:bg-yellow-600/30 transition">
                             <i class="fas fa-coins"></i> <span>${p.coins} Xu</span>
                         </button>
-                        <button onclick="switchView('messages')" class="relative text-gray-300 hover:text-white px-2">
+                        <button onclick="switchView('messages')" class="relative text-gray-300 hover:text-white px-2 py-1 transition">
                             <i class="fas fa-envelope text-lg"></i>
                         </button>
-                        <button onclick="switchView('studio')" class="bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded-lg text-xs font-medium transition">
-                            <i class="fas fa-book-open mr-1"></i> Tủ truyện
+                        <button onclick="switchView('studio')" class="bg-gray-700 hover:bg-gray-600 border border-gray-600 px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1">
+                            <i class="fas fa-feather text-purple-400"></i> <span>Studio</span>
                         </button>
-                        ${isAdmin ? `<button onclick="switchView('admin-panel')" class="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg text-xs font-bold transition text-white">Quản lý</button>` : ''}
-                        <div class="flex items-center space-x-1 cursor-pointer" onclick="switchView('author-profile', {authorId: '${p.uid}'})">
-                            <img src="${p.bgUrl || 'https://via.placeholder.com/40'}" class="w-7 h-7 rounded-full object-cover border border-purple-500">
-                            <span class="text-xs font-semibold ${isAdmin ? 'badge-huyen-thoai text-red-500' : getRankClass(p.reputation)}">
+                        ${isAdmin ? `<button onclick="switchView('admin-panel')" class="bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg text-xs font-bold transition text-white shadow-md">Quản lý</button>` : ''}
+                        <div class="flex items-center space-x-1 cursor-pointer pl-1" onclick="switchView('author-profile', {authorId: '${p.uid}'})">
+                            <img src="${p.bgUrl || 'https://via.placeholder.com/40'}" class="w-8 h-8 rounded-full object-cover border-2 border-purple-500 shadow-sm">
+                            <span class="text-xs font-bold ${isAdmin ? 'badge-huyen-thoai text-red-500' : getRankClass(p.reputation)}">
                                 ${p.displayName || p.username} ${isAdmin ? '<i class="fas fa-check-circle text-blue-500"></i>' : ''}
                             </span>
                         </div>
-                        <button onclick="handleLogout()" class="text-gray-400 hover:text-red-400 text-xs px-1"><i class="fas fa-sign-out-alt"></i></button>
+                        <button onclick="handleLogout()" class="text-gray-400 hover:text-red-400 text-xs px-1 transition"><i class="fas fa-sign-out-alt"></i></button>
                     </div>
                 `;
             }
@@ -332,21 +381,22 @@
             return 'Tập sự';
         }
 
-        // --- Trang Chủ ---
         async function renderHome() {
             const content = document.getElementById('appMainContent');
             content.innerHTML = `
                 <div class="space-y-6">
-                    <div class="bg-gradient-to-r from-purple-800 to-indigo-900 p-6 rounded-2xl shadow-xl flex flex-col md:flex-row justify-between items-center">
-                        <div>
-                            <h2 class="text-3xl font-extrabold text-white mb-2">Thế Giới Sáng Tác & Đọc Truyện</h2>
-                            <p class="text-purple-200 text-sm">Đồng bộ trực tuyến hoàn hảo giữa điện thoại và máy tính.</p>
+                    <div class="bg-gradient-to-r from-purple-900 via-indigo-900 to-gray-800 p-6 md:p-8 rounded-3xl shadow-2xl border border-purple-500/20 flex flex-col md:flex-row justify-between items-center">
+                        <div class="space-y-2">
+                            <h2 class="text-3xl md:text-4xl font-extrabold text-white tracking-tight">Thế Giới Sáng Tác & Đọc Truyện</h2>
+                            <p class="text-purple-200 text-sm">Đồng bộ dữ liệu thời gian thực mượt mà giữa Điện thoại và Máy tính.</p>
                         </div>
-                        <button onclick="switchView('create-story')" class="mt-4 md:mt-0 bg-pink-600 hover:bg-pink-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition">Viết Truyện Ngay</button>
+                        <button onclick="switchView('create-story')" class="mt-4 md:mt-0 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white px-6 py-3.5 rounded-2xl font-extrabold shadow-lg transition transform hover:-translate-y-0.5 flex items-center space-x-2">
+                            <i class="fas fa-plus-circle text-lg"></i> <span>Viết Truyện Ngay</span>
+                        </button>
                     </div>
                     <div>
-                        <h3 class="text-xl font-bold mb-4 text-purple-300">Tác phẩm nổi bật</h3>
-                        <div id="storyListContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <h3 class="text-xl font-bold mb-4 text-purple-300 flex items-center"><i class="fas fa-fire text-red-500 mr-2"></i> Tác phẩm nổi bật</h3>
+                        <div id="storyListContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
                             <p class="text-gray-400">Đang tải tác phẩm...</p>
                         </div>
                     </div>
@@ -360,7 +410,7 @@
             try {
                 const snap = await window.getDocs(window.collection(window.db, "stories"));
                 if (snap.empty) {
-                    container.innerHTML = `<p class="text-gray-400 col-span-full text-center py-8">Chưa có tác phẩm nào.</p>`;
+                    container.innerHTML = `<p class="text-gray-400 col-span-full text-center py-10 bg-gray-800/50 rounded-2xl">Chưa có tác phẩm nào được đăng.</p>`;
                     return;
                 }
                 let html = '';
@@ -371,51 +421,50 @@
                     if (filterQuery && !searchStr.includes(filterQuery.toLowerCase())) return;
 
                     html += `
-                        <div onclick="switchView('read-story', {storyId: '${sId}'})" class="bg-gray-800 rounded-xl overflow-hidden shadow-md hover:shadow-purple-500/20 transition cursor-pointer border border-gray-700 flex flex-col">
-                            <div class="h-44 bg-cover bg-center" style="background-image: url('${s.coverUrl || 'https://via.placeholder.com/300'}')"></div>
-                            <div class="p-4 flex flex-col flex-grow" style="background-image: url('${s.bgUrl || ''}'); background-size: cover;">
-                                <span class="text-xs text-pink-400 font-semibold mb-1 uppercase">${s.genre} • ${s.type}</span>
-                                <h4 class="text-lg font-bold text-white truncate">${s.title}</h4>
-                                <p class="text-xs text-gray-400 mb-2" onclick="event.stopPropagation(); switchView('author-profile', {authorId: '${s.authorId}'})">Tác giả: <span class="text-purple-400 underline">${s.authorName}</span></p>
-                                <p class="text-xs text-gray-300 line-clamp-2 mb-4 flex-grow">${s.description}</p>
-                                <div class="flex justify-between items-center text-xs text-gray-400 border-t border-gray-700 pt-2">
-                                    <span><i class="fas fa-heart text-red-500 mr-1"></i> ${s.hearts || 0} tim</span>
-                                    <span><i class="fas fa-coins text-yellow-500 mr-1"></i> ${s.collectedCoins || 0} xu</span>
+                        <div onclick="switchView('story-detail', {storyId: '${sId}'})" class="bg-gray-800 rounded-2xl overflow-hidden shadow-lg hover:shadow-purple-500/20 transition cursor-pointer border border-gray-700/80 flex flex-col group">
+                            <div class="h-48 bg-cover bg-center group-hover:scale-105 transition duration-300" style="background-image: url('${s.coverUrl || 'https://via.placeholder.com/300'}')"></div>
+                            <div class="p-4 flex flex-col flex-grow relative" style="background-image: url('${s.bgUrl || ''}'); background-size: cover;">
+                                <div class="bg-gray-900/90 backdrop-blur-sm p-3 rounded-xl flex-grow flex flex-col">
+                                    <span class="text-xs text-pink-400 font-bold uppercase tracking-wider mb-1">${s.genre} • ${s.type}</span>
+                                    <h4 class="text-base font-extrabold text-white truncate mb-1 group-hover:text-purple-400 transition">${s.title}</h4>
+                                    <p class="text-xs text-gray-400 mb-2" onclick="event.stopPropagation(); switchView('author-profile', {authorId: '${s.authorId}'})">Tác giả: <span class="text-purple-300 font-semibold underline">${s.authorName}</span></p>
+                                    <p class="text-xs text-gray-300 line-clamp-2 mb-3 flex-grow">${s.description}</p>
+                                    <div class="flex justify-between items-center text-xs text-gray-400 border-t border-gray-700/80 pt-2">
+                                        <span><i class="fas fa-heart text-red-500 mr-1"></i> ${s.hearts || 0}</span>
+                                        <span><i class="fas fa-coins text-yellow-400 mr-1"></i> ${s.collectedCoins || 0} xu</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     `;
                 });
-                container.innerHTML = html || `<p class="text-gray-400 col-span-full text-center py-8">Không tìm thấy tác phẩm phù hợp.</p>`;
+                container.innerHTML = html || `<p class="text-gray-400 col-span-full text-center py-10 bg-gray-800/50 rounded-2xl">Không tìm thấy tác phẩm phù hợp.</p>`;
             } catch (e) {
                 container.innerHTML = `<p class="text-gray-400 col-span-full text-center py-8">Lỗi tải danh sách tác phẩm.</p>`;
             }
         }
 
-        function handleGlobalSearch(val) {
-            loadStories(val);
-        }
+        function handleGlobalSearch(val) { loadStories(val); }
 
-        // --- Trang Đăng Nhập / Đăng Ký ---
         function renderAuthPage() {
             const content = document.getElementById('appMainContent');
             content.innerHTML = `
-                <div class="max-w-md mx-auto bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-700 mt-10">
+                <div class="max-w-md mx-auto bg-gray-800 p-8 rounded-3xl shadow-2xl border border-gray-700 mt-8">
                     <div class="flex border-b border-gray-700 mb-6">
-                        <button onclick="toggleAuthTab('login')" id="loginTabBtn" class="w-1/2 pb-3 font-bold text-purple-400 border-b-2 border-purple-500">Đăng Nhập</button>
-                        <button onclick="toggleAuthTab('register')" id="registerTabBtn" class="w-1/2 pb-3 font-bold text-gray-400">Đăng Ký</button>
+                        <button onclick="toggleAuthTab('login')" id="loginTabBtn" class="w-1/2 pb-3 font-extrabold text-purple-400 border-b-2 border-purple-500">Đăng Nhập</button>
+                        <button onclick="toggleAuthTab('register')" id="registerTabBtn" class="w-1/2 pb-3 font-extrabold text-gray-400">Đăng Ký</button>
                     </div>
                     <div id="authFormContainer">
                         <form onsubmit="handleLoginSubmit(event)" class="space-y-4">
                             <div>
                                 <label class="block text-xs font-bold text-gray-300 mb-1">Tên đăng nhập hoặc Email</label>
-                                <input type="text" id="loginEmail" required class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500">
+                                <input type="text" id="loginEmail" required class="w-full bg-gray-700/80 border border-gray-600 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-purple-500">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-gray-300 mb-1">Mật khẩu</label>
-                                <input type="password" id="loginPassword" required class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500">
+                                <input type="password" id="loginPassword" required class="w-full bg-gray-700/80 border border-gray-600 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-purple-500">
                             </div>
-                            <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-lg transition">Đăng Nhập</button>
+                            <button type="submit" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-3 rounded-xl transition shadow-lg">Đăng Nhập</button>
                         </form>
                     </div>
                 </div>
@@ -427,76 +476,79 @@
             const loginBtn = document.getElementById('loginTabBtn');
             const regBtn = document.getElementById('registerTabBtn');
             if (tab === 'login') {
-                loginBtn.className = "w-1/2 pb-3 font-bold text-purple-400 border-b-2 border-purple-500";
-                regBtn.className = "w-1/2 pb-3 font-bold text-gray-400";
+                loginBtn.className = "w-1/2 pb-3 font-extrabold text-purple-400 border-b-2 border-purple-500";
+                regBtn.className = "w-1/2 pb-3 font-extrabold text-gray-400";
                 container.innerHTML = `
                     <form onsubmit="handleLoginSubmit(event)" class="space-y-4">
                         <div>
                             <label class="block text-xs font-bold text-gray-300 mb-1">Tên đăng nhập hoặc Email</label>
-                            <input type="text" id="loginEmail" required class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500">
+                            <input type="text" id="loginEmail" required class="w-full bg-gray-700/80 border border-gray-600 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-purple-500">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-300 mb-1">Mật khẩu</label>
-                            <input type="password" id="loginPassword" required class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500">
+                            <input type="password" id="loginPassword" required class="w-full bg-gray-700/80 border border-gray-600 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-purple-500">
                         </div>
-                        <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-lg transition">Đăng Nhập</button>
+                        <button type="submit" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-3 rounded-xl transition shadow-lg">Đăng Nhập</button>
                     </form>
                 `;
             } else {
-                regBtn.className = "w-1/2 pb-3 font-bold text-purple-400 border-b-2 border-purple-500";
-                loginBtn.className = "w-1/2 pb-3 font-bold text-gray-400";
+                regBtn.className = "w-1/2 pb-3 font-extrabold text-purple-400 border-b-2 border-purple-500";
+                loginBtn.className = "w-1/2 pb-3 font-extrabold text-gray-400";
                 container.innerHTML = `
                     <form onsubmit="handleRegisterSubmit(event)" class="space-y-4">
                         <div>
                             <label class="block text-xs font-bold text-gray-300 mb-1">Tên đăng nhập (Duy nhất)</label>
-                            <input type="text" id="regUsername" required class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500">
+                            <input type="text" id="regUsername" required class="w-full bg-gray-700/80 border border-gray-600 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-purple-500">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-300 mb-1">Email</label>
-                            <input type="email" id="regEmail" required class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500">
+                            <input type="email" id="regEmail" required class="w-full bg-gray-700/80 border border-gray-600 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-purple-500">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-300 mb-1">Mật khẩu</label>
-                            <input type="password" id="regPassword" required class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500">
+                            <input type="password" id="regPassword" required class="w-full bg-gray-700/80 border border-gray-600 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-purple-500">
                         </div>
-                        <button type="submit" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-2.5 rounded-lg transition">Đăng Ký</button>
+                        <button type="submit" class="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white font-bold py-3 rounded-xl transition shadow-lg">Đăng Ký Tài Khoản</button>
                     </form>
                 `;
             }
         }
 
-        // --- Trang Sáng Tác & Tủ Truyện (Studio) ---
         function renderStudioPage() {
             if (!window.currentUser) { switchView('auth'); return; }
             const p = window.currentProfile;
             const content = document.getElementById('appMainContent');
             content.innerHTML = `
                 <div class="space-y-6">
-                    <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700 flex flex-col md:flex-row justify-between items-center">
+                    <div class="bg-gray-800 p-6 rounded-3xl border border-gray-700 shadow-xl flex flex-col md:flex-row justify-between items-center">
                         <div class="flex items-center space-x-4">
-                            <img src="${p.bgUrl || 'https://via.placeholder.com/80'}" class="w-16 h-16 rounded-full object-cover border-2 border-purple-500">
+                            <img src="${p.bgUrl || 'https://via.placeholder.com/80'}" class="w-16 h-16 rounded-full object-cover border-2 border-purple-500 shadow-md">
                             <div>
-                                <h2 class="text-2xl font-bold ${p.username === 'quanly' ? 'badge-huyen-thoai text-red-500' : getRankClass(p.reputation)}">${p.displayName || p.username}</h2>
-                                <p class="text-xs text-gray-400">Cấp bậc: ${getRankName(p.reputation)} | Độ nổi tiếng: ${p.reputation} | Xu: ${p.coins}</p>
+                                <h2 class="text-2xl font-extrabold ${p.username === 'quanly' ? 'badge-huyen-thoai text-red-500' : getRankClass(p.reputation)}">${p.displayName || p.username}</h2>
+                                <p class="text-xs text-gray-400 mt-1">Cấp bậc: <span class="font-bold text-purple-300">${getRankName(p.reputation)}</span> | Độ nổi tiếng: <span class="text-pink-400 font-bold">${p.reputation}</span> | Xu Ví Cá Nhân: <span class="text-yellow-400 font-bold">${p.coins}</span></p>
                             </div>
                         </div>
                         <div class="mt-4 md:mt-0 flex space-x-3">
-                            <button onclick="switchView('create-story')" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-xl text-sm font-bold transition">Tạo Tác Phẩm Mới</button>
-                            <button onclick="openEditProfileModal()" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-xl text-sm font-bold transition">Cài Đặt Hồ Sơ</button>
+                            <button onclick="switchView('create-story')" class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 px-5 py-2.5 rounded-xl text-xs font-bold transition shadow-lg flex items-center space-x-1">
+                                <i class="fas fa-plus"></i> <span>Tạo Tác Phẩm Mới</span>
+                            </button>
+                            <button onclick="openEditProfileModal()" class="bg-gray-700 hover:bg-gray-600 px-4 py-2.5 rounded-xl text-xs font-semibold transition border border-gray-600">
+                                <i class="fas fa-cog mr-1"></i> Hồ Sơ
+                            </button>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700">
-                            <h3 class="text-xl font-bold mb-4 text-purple-300"><i class="fas fa-pen-nib mr-2"></i> Tác Phẩm Đã Sáng Tác</h3>
+                        <div class="bg-gray-800 p-6 rounded-3xl border border-gray-700/80 shadow-lg">
+                            <h3 class="text-lg font-bold mb-4 text-purple-300 flex items-center"><i class="fas fa-pen-nib mr-2 text-pink-400"></i> Tác Phẩm Đã Sáng Tác</h3>
                             <div id="myStoriesContainer" class="space-y-3">
-                                <p class="text-gray-400">Đang tải...</p>
+                                <p class="text-gray-400 text-sm">Đang tải tác phẩm...</p>
                             </div>
                         </div>
-                        <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700">
-                            <h3 class="text-xl font-bold mb-4 text-pink-300"><i class="fas fa-history mr-2"></i> Tác Phẩm Đã Xem</h3>
+                        <div class="bg-gray-800 p-6 rounded-3xl border border-gray-700/80 shadow-lg">
+                            <h3 class="text-lg font-bold mb-4 text-pink-300 flex items-center"><i class="fas fa-history mr-2 text-purple-400"></i> Tác Phẩm Đã Xem</h3>
                             <div id="historyStoriesContainer" class="space-y-3">
-                                <p class="text-gray-400">Chưa xem tác phẩm nào.</p>
+                                <p class="text-gray-400 text-sm">Chưa xem tác phẩm nào.</p>
                             </div>
                         </div>
                     </div>
@@ -512,37 +564,59 @@
                 const q = window.query(window.collection(window.db, "stories"), window.where("authorId", "==", window.currentUser.uid));
                 const snap = await window.getDocs(q);
                 if (snap.empty) {
-                    container.innerHTML = `<p class="text-gray-400 text-sm">Bạn chưa sáng tác tác phẩm nào.</p>`;
+                    container.innerHTML = `<p class="text-gray-400 text-xs py-4 text-center">Bạn chưa sáng tác tác phẩm nào.</p>`;
                     return;
                 }
                 let html = '';
                 snap.forEach(docSnap => {
                     const s = docSnap.data();
                     const id = docSnap.id;
+                    const collected = s.collectedCoins || 0;
                     html += `
-                        <div class="bg-gray-700/50 p-3 rounded-xl flex justify-between items-center border border-gray-600">
+                        <div class="bg-gray-700/50 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center border border-gray-600/80 gap-3">
                             <div>
-                                <h4 class="font-bold text-white text-sm cursor-pointer hover:text-purple-400" onclick="switchView('read-story', {storyId: '${id}'})">${s.title}</h4>
-                                <p class="text-xs text-gray-400">${s.genre} • ${s.type} | Tim: ${s.hearts || 0}</p>
+                                <h4 class="font-bold text-white text-sm cursor-pointer hover:text-purple-400 transition" onclick="switchView('story-detail', {storyId: '${id}'})">${s.title}</h4>
+                                <p class="text-xs text-gray-400 mt-1">${s.genre} • ${s.type} | Tim: ${s.hearts || 0}</p>
+                                <p class="text-xs text-yellow-400 font-bold mt-0.5">💰 Tích lũy tác phẩm: ${collected} Xu</p>
                             </div>
-                            <div class="flex space-x-2">
-                                <button onclick="openAddChapterModal('${id}')" class="bg-green-600 hover:bg-green-700 px-2.5 py-1 rounded text-xs text-white">Thêm chương</button>
-                                <button onclick="deleteStory('${id}')" class="bg-red-600 hover:bg-red-700 px-2.5 py-1 rounded text-xs text-white">Xóa</button>
+                            <div class="flex flex-wrap gap-1.5 w-full sm:w-auto">
+                                ${collected > 0 ? `<button onclick="collectCoinsFromStory('${id}', ${collected})" class="bg-yellow-600 hover:bg-yellow-700 px-2.5 py-1.5 rounded-lg text-xs font-bold text-white transition"><i class="fas fa-hand-holding-usd mr-1"></i> Rút Xu</button>` : ''}
+                                <button onclick="openEditStoryBgModal('${id}')" class="bg-indigo-600 hover:bg-indigo-700 px-2.5 py-1.5 rounded-lg text-xs text-white transition"><i class="fas fa-image mr-1"></i> Đổi Nền</button>
+                                <button onclick="openAddChapterModalProfessional('${id}')" class="bg-green-600 hover:bg-green-700 px-2.5 py-1.5 rounded-lg text-xs text-white transition font-bold"><i class="fas fa-plus mr-1"></i> Thêm Chương</button>
+                                <button onclick="deleteStory('${id}')" class="bg-red-600 hover:bg-red-700 px-2.5 py-1.5 rounded-lg text-xs text-white transition"><i class="fas fa-trash"></i></button>
                             </div>
                         </div>
                     `;
                 });
                 container.innerHTML = html;
             } catch (err) {
-                container.innerHTML = `<p class="text-red-400 text-sm">Lỗi tải tác phẩm.</p>`;
+                container.innerHTML = `<p class="text-red-400 text-xs">Lỗi tải tác phẩm.</p>`;
             }
+        }
+
+        async function collectCoinsFromStory(storyId, amount) {
+            if (amount <= 0) return;
+            try {
+                window.currentProfile.coins += amount;
+                await window.updateDoc(window.doc(window.db, "users", window.currentUser.uid), {
+                    coins: window.currentProfile.coins
+                });
+
+                await window.updateDoc(window.doc(window.db, "stories", storyId), {
+                    collectedCoins: 0
+                });
+
+                alert(`🎉 Bạn đã rút thành công +${amount} Xu từ tác phẩm về ví cá nhân!`);
+                renderNavbar();
+                renderStudioPage();
+            } catch(e) { alert("Lỗi rút xu: " + e.message); }
         }
 
         async function loadHistoryStories() {
             const container = document.getElementById('historyStoriesContainer');
             const viewed = window.currentProfile.viewedStories || [];
             if (viewed.length === 0) {
-                container.innerHTML = `<p class="text-gray-400 text-sm">Chưa có lịch sử xem.</p>`;
+                container.innerHTML = `<p class="text-gray-400 text-xs py-4 text-center">Chưa có lịch sử xem.</p>`;
                 return;
             }
             let html = '';
@@ -552,53 +626,114 @@
                     if (docSnap.exists()) {
                         const s = docSnap.data();
                         html += `
-                            <div class="bg-gray-700/50 p-3 rounded-xl flex justify-between items-center border border-gray-600 cursor-pointer hover:bg-gray-700" onclick="switchView('read-story', {storyId: '${id}'})">
-                                <span class="font-bold text-white text-sm truncate">${s.title}</span>
-                                <span class="text-xs text-purple-300">${s.genre}</span>
+                            <div class="bg-gray-700/50 p-3 rounded-xl flex justify-between items-center border border-gray-600/80 cursor-pointer hover:bg-gray-700 transition" onclick="switchView('story-detail', {storyId: '${id}'})">
+                                <span class="font-bold text-white text-xs truncate">${s.title}</span>
+                                <span class="text-xs text-purple-300 font-semibold">${s.genre}</span>
                             </div>
                         `;
                     }
                 } catch(e){}
             }
-            container.innerHTML = html || `<p class="text-gray-400 text-sm">Chưa có lịch sử xem.</p>`;
+            container.innerHTML = html || `<p class="text-gray-400 text-xs py-4 text-center">Chưa có lịch sử xem.</p>`;
         }
 
-        // Cài đặt hồ sơ (Đổi biệt danh, hình nền tài khoản)
         function openEditProfileModal() {
             const p = window.currentProfile;
-            const newName = prompt("Nhập biệt danh mới:", p.displayName || p.username);
-            if (newName === null) return;
-            const newBg = prompt("Nhập URL ảnh nền tài khoản:", p.bgUrl || '');
-            if (newBg === null) return;
-
-            window.updateDoc(window.doc(window.db, "users", window.currentUser.uid), {
-                displayName: newName.trim(),
-                bgUrl: newBg.trim()
-            }).then(() => {
-                alert("Cập nhật hồ sơ thành công!");
-                window.currentProfile.displayName = newName.trim();
-                window.currentProfile.bgUrl = newBg.trim();
-                renderNavbar();
-                renderStudioPage();
-            }).catch(err => alert("Lỗi: " + err.message));
+            const modalHtml = `
+                <div class="flex justify-between items-center border-b border-gray-700 pb-3">
+                    <h3 class="text-lg font-bold text-purple-400"><i class="fas fa-user-edit mr-2"></i> Chỉnh Sửa Hồ Sơ Tác Giả</h3>
+                    <button onclick="closeCustomModal()" class="text-gray-400 hover:text-white"><i class="fas fa-times text-lg"></i></button>
+                </div>
+                <div class="space-y-4 pt-2">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-300 mb-1">Biệt danh tác giả</label>
+                        <input type="text" id="modalDisplayName" class="w-full bg-gray-700 border border-gray-600 rounded-xl px-3.5 py-2 text-white text-sm" value="${p.displayName || p.username}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-300 mb-1">Ảnh đại diện / Ảnh nền mới từ thiết bị</label>
+                        <input type="file" id="modalProfileBgFile" accept="image/*" class="w-full bg-gray-700 text-xs text-gray-300 border border-gray-600 rounded-xl p-1.5">
+                    </div>
+                    <div class="flex justify-end space-x-2 pt-3 border-t border-gray-700">
+                        <button onclick="closeCustomModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-xs font-bold rounded-xl transition">Hủy</button>
+                        <button onclick="saveEditProfileModal()" class="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl transition shadow-md">Lưu Hồ Sơ</button>
+                    </div>
+                </div>
+            `;
+            showCustomModal(modalHtml);
         }
 
-        // Tạo tác phẩm mới
+        async function saveEditProfileModal() {
+            const name = document.getElementById('modalDisplayName').value.trim();
+            const fileInput = document.getElementById('modalProfileBgFile');
+            let bgUrl = window.currentProfile.bgUrl || '';
+
+            if (fileInput.files[0]) {
+                bgUrl = await fileToBase64(fileInput.files[0]);
+            }
+
+            try {
+                await window.updateDoc(window.doc(window.db, "users", window.currentUser.uid), { displayName: name, bgUrl: bgUrl });
+                window.currentProfile.displayName = name;
+                window.currentProfile.bgUrl = bgUrl;
+                closeCustomModal();
+                alert("Cập nhật hồ sơ thành công!");
+                renderNavbar();
+                renderStudioPage();
+            } catch(e) { alert("Lỗi: " + e.message); }
+        }
+
+        function openEditStoryBgModal(storyId) {
+            const modalHtml = `
+                <div class="flex justify-between items-center border-b border-gray-700 pb-3">
+                    <h3 class="text-lg font-bold text-indigo-400"><i class="fas fa-image mr-2"></i> Thay Đổi Ảnh Nền Tác Phẩm</h3>
+                    <button onclick="closeCustomModal()" class="text-gray-400 hover:text-white"><i class="fas fa-times text-lg"></i></button>
+                </div>
+                <div class="space-y-4 pt-2">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-300 mb-1">Chọn ảnh nền từ máy tính/điện thoại</label>
+                        <input type="file" id="modalStoryBgFile" accept="image/*" class="w-full bg-gray-700 text-xs text-gray-300 border border-gray-600 rounded-xl p-1.5">
+                    </div>
+                    <div class="flex justify-end space-x-2 pt-3 border-t border-gray-700">
+                        <button onclick="closeCustomModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-xs font-bold rounded-xl transition">Hủy</button>
+                        <button onclick="saveEditStoryBgModal('${storyId}')" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition shadow-md">Cập Nhật Ảnh Nền</button>
+                    </div>
+                </div>
+            `;
+            showCustomModal(modalHtml);
+        }
+
+        async function saveEditStoryBgModal(storyId) {
+            const fileInput = document.getElementById('modalStoryBgFile');
+            if (!fileInput.files[0]) {
+                alert("Vui lòng chọn 1 ảnh!");
+                return;
+            }
+            try {
+                const bgBase64 = await fileToBase64(fileInput.files[0]);
+                await window.updateDoc(window.doc(window.db, "stories", storyId), { bgUrl: bgBase64 });
+                closeCustomModal();
+                alert("Cập nhật ảnh nền tác phẩm thành công!");
+                renderStudioPage();
+            } catch(e) { alert("Lỗi: " + e.message); }
+        }
+
         function renderCreateStoryPage() {
             if (!window.currentUser) { switchView('auth'); return; }
             const content = document.getElementById('appMainContent');
             content.innerHTML = `
-                <div class="max-w-2xl mx-auto bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-700">
-                    <h2 class="text-2xl font-bold text-purple-400 mb-6 border-b border-gray-700 pb-3"><i class="fas fa-feather-alt mr-2"></i> Đăng Tác Phẩm Mới</h2>
-                    <form onsubmit="handleCreateStorySubmit(event)" class="space-y-4">
+                <div class="max-w-2xl mx-auto bg-gray-800 p-8 rounded-3xl shadow-2xl border border-gray-700">
+                    <h2 class="text-2xl font-extrabold text-purple-400 mb-6 border-b border-gray-700 pb-3 flex items-center">
+                        <i class="fas fa-magic mr-2 text-pink-500"></i> Sáng Tác Tác Phẩm Mới
+                    </h2>
+                    <form onsubmit="handleCreateStorySubmit(event)" class="space-y-5">
                         <div>
-                            <label class="block text-xs font-bold text-gray-300 mb-1">Tên Tác Phẩm</label>
-                            <input type="text" id="storyTitle" required class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+                            <label class="block text-xs font-bold text-gray-300 mb-1">Tên Tác Phẩm *</label>
+                            <input type="text" id="storyTitle" required placeholder="Nhập tên tác phẩm..." class="w-full bg-gray-700/80 border border-gray-600 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500">
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-gray-300 mb-1">Kiểu Hình</label>
-                                <select id="storyType" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+                                <select id="storyType" class="w-full bg-gray-700/80 border border-gray-600 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500">
                                     <option value="Truyện Chữ">Truyện Chữ</option>
                                     <option value="Truyện Tranh">Truyện Tranh</option>
                                     <option value="Audio">Audio</option>
@@ -606,7 +741,7 @@
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-gray-300 mb-1">Thể Loại</label>
-                                <select id="storyGenre" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white">
+                                <select id="storyGenre" class="w-full bg-gray-700/80 border border-gray-600 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500">
                                     <option value="Tiên Hiệp">Tiên Hiệp</option>
                                     <option value="Huyền Huyễn">Huyền Huyễn</option>
                                     <option value="Ngôn Tình">Ngôn Tình</option>
@@ -616,19 +751,26 @@
                                 </select>
                             </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-300 mb-1">Link Ảnh Bìa (URL)</label>
-                            <input type="url" id="storyCover" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white" placeholder="https://...">
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-300 mb-1">Tải Ảnh Bìa Tác Phẩm</label>
+                                <input type="file" id="storyCoverFile" accept="image/*" class="w-full bg-gray-700/80 border border-gray-600 rounded-xl px-3 py-1.5 text-xs text-gray-300 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-700">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-300 mb-1">Tải Ảnh Nền Tác Phẩm</label>
+                                <input type="file" id="storyBgFile" accept="image/*" class="w-full bg-gray-700/80 border border-gray-600 rounded-xl px-3 py-1.5 text-xs text-gray-300 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-pink-600 file:text-white hover:file:bg-pink-700">
+                            </div>
                         </div>
+
                         <div>
-                            <label class="block text-xs font-bold text-gray-300 mb-1">Link Hình Nền Tác Phẩm (URL)</label>
-                            <input type="url" id="storyBg" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white" placeholder="https://...">
+                            <label class="block text-xs font-bold text-gray-300 mb-1">Tóm Tắt Mô Tả *</label>
+                            <textarea id="storyDesc" rows="3" required placeholder="Viết tóm tắt nội dung ngắn gọn..." class="w-full bg-gray-700/80 border border-gray-600 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-purple-500"></textarea>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-300 mb-1">Mô Tả</label>
-                            <textarea id="storyDesc" rows="3" required class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"></textarea>
-                        </div>
-                        <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-lg transition">Đăng Tác Phẩm</button>
+
+                        <button type="submit" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-extrabold py-3.5 rounded-xl transition shadow-lg">
+                            🚀 Đăng Tác Phẩm Mới
+                        </button>
                     </form>
                 </div>
             `;
@@ -639,9 +781,16 @@
             const title = document.getElementById('storyTitle').value.trim();
             const type = document.getElementById('storyType').value;
             const genre = document.getElementById('storyGenre').value;
-            const coverUrl = document.getElementById('storyCover').value.trim();
-            const bgUrl = document.getElementById('storyBg').value.trim();
             const description = document.getElementById('storyDesc').value.trim();
+
+            const coverFileInput = document.getElementById('storyCoverFile');
+            const bgFileInput = document.getElementById('storyBgFile');
+
+            let coverUrl = 'https://via.placeholder.com/300x400?text=Truyen+Hay+GN';
+            let bgUrl = '';
+
+            if (coverFileInput.files[0]) coverUrl = await fileToBase64(coverFileInput.files[0]);
+            if (bgFileInput.files[0]) bgUrl = await fileToBase64(bgFileInput.files[0]);
 
             try {
                 const newStory = {
@@ -651,16 +800,14 @@
                     hearts: 0,
                     collectedCoins: 0,
                     chapters: [
-                        { title: "Chương 1: Khởi đầu", content: "Nội dung chương 1 đang cập nhật...", price: 0 }
+                        { title: "Chương 1: Mở đầu", content: "Nội dung chương 1 đang cập nhật...", price: 0 }
                     ],
                     createdAt: window.serverTimestamp()
                 };
                 await window.addDoc(window.collection(window.db, "stories"), newStory);
-                alert("Đăng tác phẩm thành công!");
+                alert("Đăng tác phẩm mới thành công!");
                 switchView('studio');
-            } catch(err) {
-                alert("Lỗi: " + err.message);
-            }
+            } catch(err) { alert("Lỗi: " + err.message); }
         }
 
         async function deleteStory(id) {
@@ -669,17 +816,89 @@
                 await window.deleteDoc(window.doc(window.db, "stories", id));
                 alert("Đã xóa tác phẩm!");
                 renderStudioPage();
-            } catch(err) {
-                alert("Lỗi: " + err.message);
-            }
+            } catch(err) { alert("Lỗi: " + err.message); }
         }
 
-        async function openAddChapterModal(storyId) {
-            const chTitle = prompt("Nhập tên chương:");
-            if (!chTitle) return;
-            const chContent = prompt("Nhập nội dung chương (Đối với truyện tranh: dán link ảnh phân cách bằng xuống dòng. Không có khoảng trắng):");
-            if (!chContent) return;
-            const price = parseInt(prompt("Nhập giá xu mở khóa chương (0 nếu đọc miễn phí):", "0")) || 0;
+        function openAddChapterModalProfessional(storyId) {
+            const modalHtml = `
+                <div class="flex justify-between items-center border-b border-gray-700 pb-3">
+                    <h3 class="text-lg font-bold text-green-400"><i class="fas fa-plus-circle mr-2"></i> Thêm Chương Mới</h3>
+                    <button onclick="closeCustomModal()" class="text-gray-400 hover:text-white"><i class="fas fa-times text-lg"></i></button>
+                </div>
+                <div class="space-y-4 pt-2">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-300 mb-1">Tên Chương / Số Thứ Tự *</label>
+                        <input type="text" id="modalChapterTitle" placeholder="Ví dụ: Chương 2: Cuộc ngộ kiến" class="w-full bg-gray-700 border border-gray-600 rounded-xl px-3.5 py-2 text-white text-sm" value="Chương mới">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-yellow-400 mb-1">Giá Xu Mở Khóa Chương (0 nếu Miễn Phí)</label>
+                        <input type="number" id="modalChapterPrice" class="w-full bg-gray-700 border border-gray-600 rounded-xl px-3.5 py-2 text-white text-sm" value="0">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-300 mb-1">Định dạng nội dung</label>
+                        <select id="modalContentType" onchange="toggleChapterInputType(this.value)" class="w-full bg-gray-700 border border-gray-600 rounded-xl px-3.5 py-2 text-white text-sm">
+                            <option value="text">Truyện Chữ (Soạn văn bản)</option>
+                            <option value="comic">Truyện Tranh (Tải nhiều file ảnh từ máy)</option>
+                            <option value="audio">Truyện Audio (Tải file âm thanh MP3)</option>
+                        </select>
+                    </div>
+
+                    <div id="sectionTextContent">
+                        <label class="block text-xs font-bold text-gray-300 mb-1">Nội dung câu chuyện</label>
+                        <textarea id="modalChapterText" rows="6" placeholder="Viết nội dung chương tại đây..." class="w-full bg-gray-700 border border-gray-600 rounded-xl p-3 text-white text-sm"></textarea>
+                    </div>
+
+                    <div id="sectionComicContent" class="hidden">
+                        <label class="block text-xs font-bold text-gray-300 mb-1">Chọn tất cả trang ảnh từ máy tính/điện thoại</label>
+                        <input type="file" id="modalComicFiles" accept="image/*" multiple class="w-full bg-gray-700 text-xs text-gray-300 border border-gray-600 rounded-xl p-2">
+                    </div>
+
+                    <div id="sectionAudioContent" class="hidden">
+                        <label class="block text-xs font-bold text-gray-300 mb-1">Chọn file ghi âm / Audio MP3</label>
+                        <input type="file" id="modalAudioFile" accept="audio/*" class="w-full bg-gray-700 text-xs text-gray-300 border border-gray-600 rounded-xl p-2">
+                    </div>
+
+                    <div class="flex justify-end space-x-2 pt-3 border-t border-gray-700">
+                        <button onclick="closeCustomModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-xs font-bold rounded-xl transition">Hủy</button>
+                        <button onclick="saveChapterFromModal('${storyId}')" class="px-5 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-xl transition shadow-md">Xuất Bản Chương</button>
+                    </div>
+                </div>
+            `;
+            showCustomModal(modalHtml);
+        }
+
+        function toggleChapterInputType(val) {
+            document.getElementById('sectionTextContent').classList.toggle('hidden', val !== 'text');
+            document.getElementById('sectionComicContent').classList.toggle('hidden', val !== 'comic');
+            document.getElementById('sectionAudioContent').classList.toggle('hidden', val !== 'audio');
+        }
+
+        async function saveChapterFromModal(storyId) {
+            const title = document.getElementById('modalChapterTitle').value.trim();
+            const price = parseInt(document.getElementById('modalChapterPrice').value) || 0;
+            const type = document.getElementById('modalContentType').value;
+
+            if (!title) { alert("Vui lòng nhập tên chương!"); return; }
+
+            let content = '';
+
+            if (type === 'text') {
+                content = document.getElementById('modalChapterText').value.trim();
+                if (!content) { alert("Vui lòng nhập nội dung chữ!"); return; }
+            } else if (type === 'comic') {
+                const files = Array.from(document.getElementById('modalComicFiles').files);
+                if (files.length === 0) { alert("Vui lòng chọn ít nhất 1 trang ảnh!"); return; }
+                let b64s = [];
+                for (let f of files) {
+                    let b = await fileToBase64(f);
+                    b64s.push(b);
+                }
+                content = b64s.join('\n');
+            } else if (type === 'audio') {
+                const file = document.getElementById('modalAudioFile').files[0];
+                if (!file) { alert("Vui lòng chọn file audio!"); return; }
+                content = await fileToBase64(file);
+            }
 
             try {
                 const docRef = window.doc(window.db, "stories", storyId);
@@ -687,30 +906,29 @@
                 if (docSnap.exists()) {
                     const story = docSnap.data();
                     const chapters = story.chapters || [];
-                    chapters.push({ title: chTitle, content: chContent, price: price });
-                    await window.updateDoc(docRef, { chapters: chapters });
-                    alert("Thêm chương thành công!");
+                    chapters.push({ title, content, price });
+                    await window.updateDoc(docRef, { chapters });
+                    closeCustomModal();
+                    alert("Xuất bản chương mới thành công!");
+                    renderStudioPage();
                 }
-            } catch(err) {
-                alert("Lỗi: " + err.message);
-            }
+            } catch(e) { alert("Lỗi: " + e.message); }
         }
 
-        // --- Trang Đọc Truyện & Bình Luận & Mở Khóa Chương ---
-        async function renderReadStoryPage(storyId) {
+        // 1. TRANG CHI TIẾT TRUYỆN (CHỈ HIỂN THỊ DANH SÁCH TÊN CHƯƠNG ĐỂ BẤM VÀO ĐỌC)
+        async function renderStoryDetailPage(storyId) {
             const content = document.getElementById('appMainContent');
-            content.innerHTML = `<p class="text-center py-8 text-gray-400">Đang tải truyện...</p>`;
+            content.innerHTML = `<p class="text-center py-8 text-gray-400">Đang tải thông tin tác phẩm...</p>`;
 
             try {
                 const docRef = window.doc(window.db, "stories", storyId);
                 const docSnap = await window.getDoc(docRef);
                 if (!docSnap.exists()) {
-                    content.innerHTML = `<p class="text-center py-8 text-red-400">Không tìm thấy truyện!</p>`;
+                    content.innerHTML = `<p class="text-center py-8 text-red-400">Không tìm thấy tác phẩm này!</p>`;
                     return;
                 }
                 const story = docSnap.data();
 
-                // Lưu vào lịch sử xem
                 if (window.currentUser) {
                     const userRef = window.doc(window.db, "users", window.currentUser.uid);
                     let viewed = window.currentProfile.viewedStories || [];
@@ -722,7 +940,6 @@
                     }
                 }
 
-                // Tải danh sách bình luận
                 const commSnap = await window.getDocs(window.query(window.collection(window.db, "stories", storyId, "comments"), window.orderBy("createdAt", "desc")));
                 let commentsHtml = '';
                 commSnap.forEach(cDoc => {
@@ -730,7 +947,7 @@
                     const cId = cDoc.id;
                     const canDelete = window.currentProfile && (window.currentProfile.username === 'quanly' || c.authorId === window.currentUser?.uid);
                     commentsHtml += `
-                        <div class="bg-gray-700/40 p-3 rounded-lg flex justify-between items-start border border-gray-600">
+                        <div class="bg-gray-700/40 p-3.5 rounded-xl flex justify-between items-start border border-gray-600/80">
                             <div>
                                 <span class="font-bold text-purple-300 text-xs">${c.authorName}</span>
                                 <p class="text-sm text-gray-200 mt-1">${c.text}</p>
@@ -740,55 +957,67 @@
                     `;
                 });
 
+                // Hiển thị danh sách chương dạng thẻ gọn nhẹ (CHƯA HIỂN THỊ NỘI DUNG)
                 let chaptersHtml = '';
+                const isAuthorOrAdmin = window.currentProfile && (window.currentProfile.uid === story.authorId || window.currentProfile.username === 'quanly');
+                const unlockedList = window.currentProfile?.unlockedChapters || [];
+
                 (story.chapters || []).forEach((ch, idx) => {
+                    const price = ch.price || 0;
+                    const chapterKey = `${storyId}_ch_${idx}`;
+                    const isUnlocked = price === 0 || isAuthorOrAdmin || unlockedList.includes(chapterKey);
+
                     chaptersHtml += `
-                        <div class="bg-gray-700 p-4 rounded-xl border border-gray-600 space-y-2">
-                            <div class="flex justify-between items-center">
-                                <h4 class="font-bold text-white">${ch.title}</h4>
-                                <span class="text-xs text-yellow-400"><i class="fas fa-coins"></i> ${ch.price || 0} Xu</span>
+                        <div onclick="switchView('read-chapter', {storyId: '${storyId}', chapterIndex: ${idx}})" class="bg-gray-700/60 hover:bg-gray-700 p-4 rounded-2xl border border-gray-600/80 flex justify-between items-center cursor-pointer transition transform hover:-translate-y-0.5 group shadow-md">
+                            <div class="flex items-center space-x-3">
+                                <span class="w-8 h-8 rounded-xl bg-purple-600/20 text-purple-400 font-extrabold text-xs flex items-center justify-center border border-purple-500/30">${idx + 1}</span>
+                                <span class="font-bold text-white text-sm group-hover:text-purple-300 transition">${ch.title}</span>
                             </div>
-                            <div class="text-gray-300 text-sm leading-relaxed bg-gray-900 p-4 rounded-lg">
-                                ${renderChapterContent(ch.content, ch.price)}
+                            <div class="flex items-center space-x-2">
+                                ${price > 0 ? (isUnlocked ? '<span class="text-xs text-green-400 font-bold bg-green-500/10 px-2.5 py-1 rounded-full border border-green-500/20"><i class="fas fa-check-circle mr-1"></i> Đã mở</span>' : `<span class="text-xs text-yellow-400 font-bold bg-yellow-400/10 px-2.5 py-1 rounded-full border border-yellow-500/20"><i class="fas fa-lock mr-1"></i> ${price} Xu</span>`) : '<span class="text-xs text-gray-400 bg-gray-600/30 px-2.5 py-1 rounded-full">Miễn phí</span>'}
+                                <i class="fas fa-chevron-right text-xs text-gray-400 group-hover:text-purple-400 transition"></i>
                             </div>
                         </div>
                     `;
                 });
 
                 content.innerHTML = `
-                    <div class="max-w-4xl mx-auto space-y-6" style="background-image: url('${story.bgUrl || ''}'); background-size: cover; padding: 20px; border-radius: 15px;">
-                        <div class="bg-gray-800/90 backdrop-blur p-6 rounded-2xl border border-gray-700 flex flex-col md:flex-row gap-6">
-                            <img src="${story.coverUrl}" class="w-full md:w-48 h-64 object-cover rounded-xl shadow-md">
+                    <div class="max-w-4xl mx-auto space-y-6" style="background-image: url('${story.bgUrl || ''}'); background-size: cover; background-position: center; padding: 20px; border-radius: 24px;">
+                        <div class="bg-gray-800/95 backdrop-blur-md p-6 rounded-3xl border border-gray-700/80 flex flex-col md:flex-row gap-6 shadow-2xl">
+                            <img src="${story.coverUrl}" class="w-full md:w-48 h-64 object-cover rounded-2xl shadow-lg">
                             <div class="space-y-3 flex-grow">
-                                <span class="bg-purple-600/30 text-purple-300 px-3 py-1 rounded-full text-xs font-bold">${story.genre} • ${story.type}</span>
+                                <span class="bg-purple-600/30 text-purple-300 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide border border-purple-500/20">${story.genre} • ${story.type}</span>
                                 <h2 class="text-3xl font-extrabold text-white">${story.title}</h2>
-                                <p class="text-sm text-gray-300 cursor-pointer" onclick="switchView('author-profile', {authorId: '${story.authorId}'})">Tác giả: <span class="text-purple-400 font-semibold underline">${story.authorName}</span></p>
-                                <p class="text-sm text-gray-300">${story.description}</p>
-                                <div class="flex space-x-3 pt-2">
-                                    <button onclick="likeStory('${storyId}')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition flex items-center space-x-1">
+                                <p class="text-sm text-gray-300 cursor-pointer" onclick="switchView('author-profile', {authorId: '${story.authorId}'})">Tác giả: <span class="text-purple-400 font-bold underline">${story.authorName}</span></p>
+                                <p class="text-sm text-gray-300 leading-relaxed">${story.description}</p>
+                                <div class="flex flex-wrap gap-3 pt-2">
+                                    ${(story.chapters && story.chapters.length > 0) ? `<button onclick="switchView('read-chapter', {storyId: '${storyId}', chapterIndex: 0})" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-5 py-2.5 rounded-xl text-xs font-extrabold transition shadow-lg flex items-center space-x-1"><i class="fas fa-book-open mr-1"></i> Đọc Từ Đầu</button>` : ''}
+                                    <button onclick="likeStory('${storyId}')" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center space-x-1 shadow-md">
                                         <i class="fas fa-heart"></i> <span>Thích (${story.hearts || 0})</span>
                                     </button>
-                                    <button onclick="donateStoryCoin('${storyId}', '${story.authorId}')" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition flex items-center space-x-1">
+                                    <button onclick="donateStoryCoinProfessional('${storyId}', '${story.authorId}')" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center space-x-1 shadow-md">
                                         <i class="fas fa-coins"></i> <span>Tặng xu tác giả</span>
                                     </button>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Danh sách chương -->
-                        <div class="bg-gray-800/90 backdrop-blur p-6 rounded-2xl border border-gray-700 space-y-4">
-                            <h3 class="text-xl font-bold text-pink-400 border-b border-gray-700 pb-2">Danh Sách Chương</h3>
-                            <div class="space-y-4">${chaptersHtml}</div>
+                        <!-- Danh sách chương dạng danh mục chuẩn -->
+                        <div class="bg-gray-800/95 backdrop-blur-md p-6 rounded-3xl border border-gray-700/80 space-y-4 shadow-2xl">
+                            <h3 class="text-lg font-bold text-pink-400 border-b border-gray-700 pb-3 flex justify-between items-center">
+                                <span><i class="fas fa-list-ol mr-2"></i> Danh Sách Chương (${(story.chapters || []).length})</span>
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">${chaptersHtml || '<p class="text-gray-400 text-xs">Tác phẩm chưa cập nhật chương nào.</p>'}</div>
                         </div>
 
                         <!-- Bình luận -->
-                        <div class="bg-gray-800/90 backdrop-blur p-6 rounded-2xl border border-gray-700 space-y-4">
-                            <h3 class="text-xl font-bold text-purple-300 border-b border-gray-700 pb-2">Bình Luận Chương</h3>
+                        <div class="bg-gray-800/95 backdrop-blur-md p-6 rounded-3xl border border-gray-700/80 space-y-4 shadow-2xl">
+                            <h3 class="text-lg font-bold text-purple-300 border-b border-gray-700 pb-2"><i class="fas fa-comments mr-2"></i> Bình Luận Sôi Nổi</h3>
                             <form onsubmit="postComment(event, '${storyId}')" class="flex space-x-2">
-                                <input type="text" id="commentInput" required placeholder="Viết bình luận..." class="flex-grow bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm">
-                                <button type="submit" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-bold text-white">Gửi</button>
+                                <input type="text" id="commentInput" required placeholder="Viết bình luận của bạn..." class="flex-grow bg-gray-700/80 border border-gray-600 rounded-xl px-4 py-2 text-white text-xs focus:outline-none focus:border-purple-500">
+                                <button type="submit" class="bg-purple-600 hover:bg-purple-700 px-5 py-2 rounded-xl text-xs font-bold text-white shadow-md">Gửi</button>
                             </form>
-                            <div class="space-y-2 mt-4">${commentsHtml || '<p class="text-gray-400 text-sm">Chưa có bình luận nào.</p>'}</div>
+                            <div class="space-y-2.5 mt-4">${commentsHtml || '<p class="text-gray-400 text-xs py-2">Chưa có bình luận nào.</p>'}</div>
                         </div>
                     </div>
                 `;
@@ -797,16 +1026,149 @@
             }
         }
 
-        function renderChapterContent(content, price) {
-            // Nếu là truyện tranh, ghép sát ảnh không khoảng trắng
-            if (content.startsWith('http') || content.includes('\nhttp')) {
-                let urls = content.split('\n').filter(u => u.trim() !== '');
-                let html = '<div class="comic-image-container">';
-                urls.forEach(u => {
-                    html += `<img src="${u.trim()}" alt="comic image">`;
+        // 2. MÀN HÌNH ĐỌC CHƯƠNG ĐỘC LẬP (ĐỌC CHUYÊN NGHIỆP CÓ THANH CHUYỂN CHƯƠNG)
+        async function renderReadChapterPage(storyId, chapterIndex) {
+            const content = document.getElementById('appMainContent');
+            content.innerHTML = `<p class="text-center py-8 text-gray-400">Đang tải nội dung chương...</p>`;
+
+            try {
+                const docRef = window.doc(window.db, "stories", storyId);
+                const docSnap = await window.getDoc(docRef);
+                if (!docSnap.exists()) {
+                    content.innerHTML = `<p class="text-center py-8 text-red-400">Không tìm thấy tác phẩm!</p>`;
+                    return;
+                }
+                const story = docSnap.data();
+                const chapters = story.chapters || [];
+                const currentCh = chapters[chapterIndex];
+
+                if (!currentCh) {
+                    content.innerHTML = `<p class="text-center py-8 text-red-400">Chương không tồn tại!</p>`;
+                    return;
+                }
+
+                const price = currentCh.price || 0;
+                const chapterKey = `${storyId}_ch_${chapterIndex}`;
+                const isAuthorOrAdmin = window.currentProfile && (window.currentProfile.uid === story.authorId || window.currentProfile.username === 'quanly');
+                const unlockedList = window.currentProfile?.unlockedChapters || [];
+                const isUnlocked = price === 0 || isAuthorOrAdmin || unlockedList.includes(chapterKey);
+
+                // Option select chương
+                let chapterOptions = '';
+                chapters.forEach((c, idx) => {
+                    chapterOptions += `<option value="${idx}" ${idx === chapterIndex ? 'selected' : ''}>${c.title}</option>`;
                 });
+
+                content.innerHTML = `
+                    <div class="max-w-4xl mx-auto space-y-6">
+                        <!-- Thanh Điều Hướng Đọc Chương -->
+                        <div class="bg-gray-800 p-4 rounded-2xl border border-gray-700 shadow-xl flex flex-col md:flex-row justify-between items-center gap-4 sticky top-16 z-30">
+                            <button onclick="switchView('story-detail', {storyId: '${storyId}'})" class="text-xs text-purple-400 hover:text-purple-300 font-bold flex items-center">
+                                <i class="fas fa-book mr-1.5"></i> <span>${story.title}</span>
+                            </button>
+
+                            <div class="flex items-center space-x-2 w-full md:w-auto justify-center">
+                                <button ${chapterIndex > 0 ? `onclick="switchView('read-chapter', {storyId: '${storyId}', chapterIndex: ${chapterIndex - 1}})"` : 'disabled'} class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 rounded-xl text-xs font-bold transition">
+                                    <i class="fas fa-chevron-left mr-1"></i> Trước
+                                </button>
+                                
+                                <select onchange="switchView('read-chapter', {storyId: '${storyId}', chapterIndex: parseInt(this.value)})" class="bg-gray-700 border border-gray-600 text-xs font-bold text-white rounded-xl px-3 py-1.5 focus:outline-none">
+                                    ${chapterOptions}
+                                </select>
+
+                                <button ${chapterIndex < chapters.length - 1 ? `onclick="switchView('read-chapter', {storyId: '${storyId}', chapterIndex: ${chapterIndex + 1}})"` : 'disabled'} class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 rounded-xl text-xs font-bold transition">
+                                    Sau <i class="fas fa-chevron-right ml-1"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Khung Hiển Thị Nội Dung Chương -->
+                        <div class="bg-gray-800 p-6 md:p-10 rounded-3xl border border-gray-700 shadow-2xl min-h-[400px]">
+                            <h2 class="text-2xl font-extrabold text-white text-center mb-6 pb-4 border-b border-gray-700">${currentCh.title}</h2>
+
+                            ${isUnlocked ? `
+                                <div class="text-gray-100 text-base leading-relaxed space-y-4">
+                                    ${renderChapterContent(currentCh.content)}
+                                </div>
+                            ` : `
+                                <div class="text-center py-12 space-y-4">
+                                    <div class="w-16 h-16 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 flex items-center justify-center mx-auto text-2xl shadow-lg">
+                                        <i class="fas fa-lock"></i>
+                                    </div>
+                                    <h3 class="text-lg font-bold text-white">Chương này cần mở khóa để đọc</h3>
+                                    <p class="text-xs text-gray-400">Giá mở khóa chương: <span class="text-yellow-400 font-bold">${price} Xu</span></p>
+                                    <button onclick="unlockChapter('${storyId}', ${chapterIndex}, ${price}, '${story.authorId}')" class="bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700 text-white font-extrabold px-8 py-3 rounded-2xl text-xs shadow-xl transition transform hover:scale-105">
+                                        <i class="fas fa-lock-open mr-1.5"></i> Mở khóa ngay (${price} Xu)
+                                    </button>
+                                </div>
+                            `}
+                        </div>
+
+                        <!-- Thanh Điều Hướng Đáy Màn Hình -->
+                        <div class="flex justify-between items-center pt-2">
+                            <button ${chapterIndex > 0 ? `onclick="switchView('read-chapter', {storyId: '${storyId}', chapterIndex: ${chapterIndex - 1}})"` : 'disabled'} class="px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 disabled:opacity-40 rounded-xl text-xs font-bold transition">
+                                <i class="fas fa-chevron-left mr-1"></i> Chương Trước
+                            </button>
+                            <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="px-3 py-2 bg-purple-600/20 text-purple-300 border border-purple-500/30 rounded-xl text-xs font-bold hover:bg-purple-600/30">
+                                <i class="fas fa-arrow-up mr-1"></i> Lên Đầu Trang
+                            </button>
+                            <button ${chapterIndex < chapters.length - 1 ? `onclick="switchView('read-chapter', {storyId: '${storyId}', chapterIndex: ${chapterIndex + 1}})"` : 'disabled'} class="px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 disabled:opacity-40 rounded-xl text-xs font-bold transition">
+                                Chương Sau <i class="fas fa-chevron-right ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } catch(e) {
+                content.innerHTML = `<p class="text-center py-8 text-red-400">Lỗi: ${e.message}</p>`;
+            }
+        }
+
+        async function unlockChapter(storyId, chapterIndex, price, authorId) {
+            if (!window.currentUser) { switchView('auth'); return; }
+            if (window.currentProfile.username !== 'quanly' && window.currentProfile.coins < price) {
+                alert(`Bạn không đủ Xu để mở khóa! Bạn cần thêm ${price - window.currentProfile.coins} Xu.`);
+                return;
+            }
+
+            try {
+                if (window.currentProfile.username !== 'quanly') {
+                    window.currentProfile.coins -= price;
+                }
+                const chapterKey = `${storyId}_ch_${chapterIndex}`;
+                let unlockedList = window.currentProfile.unlockedChapters || [];
+                if (!unlockedList.includes(chapterKey)) unlockedList.push(chapterKey);
+                window.currentProfile.unlockedChapters = unlockedList;
+
+                await window.updateDoc(window.doc(window.db, "users", window.currentUser.uid), {
+                    coins: window.currentProfile.coins,
+                    unlockedChapters: unlockedList
+                });
+
+                const storyRef = window.doc(window.db, "stories", storyId);
+                const storySnap = await window.getDoc(storyRef);
+                if (storySnap.exists()) {
+                    const currentCollected = storySnap.data().collectedCoins || 0;
+                    await window.updateDoc(storyRef, {
+                        collectedCoins: currentCollected + price
+                    });
+                }
+
+                alert("🎉 Mở khóa chương thành công!");
+                renderNavbar();
+                renderReadChapterPage(storyId, chapterIndex);
+            } catch(e) { alert("Lỗi mở khóa: " + e.message); }
+        }
+
+        function renderChapterContent(content) {
+            if (content.startsWith('data:image') || content.startsWith('http') || content.includes('\ndata:image')) {
+                let urls = content.split('\n').filter(u => u.trim() !== '');
+                let html = '<div class="comic-image-container rounded-xl overflow-hidden shadow-md">';
+                urls.forEach(u => { html += `<img src="${u.trim()}" alt="comic page">`; });
                 html += '</div>';
                 return html;
+            }
+            if (content.startsWith('data:audio')) {
+                return `<audio controls class="w-full my-2"><source src="${content}"></audio>`;
             }
             return content;
         }
@@ -821,47 +1183,58 @@
                     const newHearts = (story.hearts || 0) + 1;
                     await window.updateDoc(docRef, { hearts: newHearts });
 
-                    // Cộng độ nổi tiếng cho tác giả truyện (1 tim = 1 độ nổi tiếng)
                     const authorRef = window.doc(window.db, "users", story.authorId);
                     const authorSnap = await window.getDoc(authorRef);
                     if (authorSnap.exists()) {
                         const authorRep = authorSnap.data().reputation || 0;
                         await window.updateDoc(authorRef, { reputation: authorRep + 1 });
                     }
-                    alert("❤️ Đã thích tác phẩm!");
-                    renderReadStoryPage(storyId);
+                    alert("❤️ Đã thả tim cho tác phẩm!");
+                    renderStoryDetailPage(storyId);
                 }
             } catch(e) { alert("Lỗi: " + e.message); }
         }
 
-        async function donateStoryCoin(storyId, authorId) {
+        function donateStoryCoinProfessional(storyId, authorId) {
             if (!window.currentUser) { switchView('auth'); return; }
-            const amount = parseInt(prompt("Nhập số xu muốn tặng tác giả:", "10"));
-            if (!amount || amount <= 0) return;
+            const modalHtml = `
+                <div class="flex justify-between items-center border-b border-gray-700 pb-3">
+                    <h3 class="text-lg font-bold text-yellow-400"><i class="fas fa-coins mr-2"></i> Tặng Xu Cho Tác Giả</h3>
+                    <button onclick="closeCustomModal()" class="text-gray-400 hover:text-white"><i class="fas fa-times text-lg"></i></button>
+                </div>
+                <div class="space-y-4 pt-2">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-300 mb-1">Số xu ủng hộ tác giả</label>
+                        <input type="number" id="modalDonateAmount" class="w-full bg-gray-700 border border-gray-600 rounded-xl px-3.5 py-2 text-white text-sm" value="10">
+                    </div>
+                    <div class="flex justify-end space-x-2 pt-3 border-t border-gray-700">
+                        <button onclick="closeCustomModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-xs font-bold rounded-xl transition">Hủy</button>
+                        <button onclick="saveDonateStoryCoin('${storyId}', '${authorId}')" class="px-5 py-2 bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-bold rounded-xl transition shadow-md">Tặng Xu Ngay</button>
+                    </div>
+                </div>
+            `;
+            showCustomModal(modalHtml);
+        }
+
+        async function saveDonateStoryCoin(storyId, authorId) {
+            const amount = parseInt(document.getElementById('modalDonateAmount').value);
+            if (!amount || amount <= 0) { alert("Số xu phải lớn hơn 0!"); return; }
             if (window.currentProfile.username !== 'quanly' && window.currentProfile.coins < amount) {
-                alert("Bạn không đủ xu để tặng!");
+                alert("Bạn không đủ xu!");
                 return;
             }
 
             try {
-                // Trừ xu người tặng (trừ khi là quản lý)
                 if (window.currentProfile.username !== 'quanly') {
                     window.currentProfile.coins -= amount;
                     await window.updateDoc(window.doc(window.db, "users", window.currentUser.uid), { coins: window.currentProfile.coins });
                 }
-                // Cộng xu và thu nhập cho tác giả
-                const authorRef = window.doc(window.db, "users", authorId);
-                const authorSnap = await window.getDoc(authorRef);
-                if (authorSnap.exists()) {
-                    const authorData = authorSnap.data();
-                    await window.updateDoc(authorRef, { coins: (authorData.coins || 0) + amount });
-                }
                 const storyRef = window.doc(window.db, "stories", storyId);
                 const storySnap = await window.getDoc(storyRef);
                 if (storySnap.exists()) {
-                    const sData = storySnap.data();
-                    await window.updateDoc(storyRef, { collectedCoins: (sData.collectedCoins || 0) + amount });
+                    await window.updateDoc(storyRef, { collectedCoins: (storySnap.data().collectedCoins || 0) + amount });
                 }
+                closeCustomModal();
                 alert("🎉 Tặng xu thành công!");
                 renderNavbar();
             } catch(e) { alert("Lỗi: " + e.message); }
@@ -881,7 +1254,7 @@
                     createdAt: window.serverTimestamp()
                 });
                 document.getElementById('commentInput').value = '';
-                renderReadStoryPage(storyId);
+                renderStoryDetailPage(storyId);
             } catch(err) { alert("Lỗi: " + err.message); }
         }
 
@@ -889,11 +1262,11 @@
             if (!confirm("Xóa bình luận này?")) return;
             try {
                 await window.deleteDoc(window.doc(window.db, "stories", storyId, "comments", commentId));
-                renderReadStoryPage(storyId);
+                renderStoryDetailPage(storyId);
             } catch(e) { alert("Lỗi: " + e.message); }
         }
 
-        // --- Trang Cá Nhân Tác Giả & Tặng Xu ---
+        // --- Trang Cá Nhân Tác Giả ---
         async function renderAuthorProfilePage(authorId) {
             const content = document.getElementById('appMainContent');
             content.innerHTML = `<p class="text-center py-8 text-gray-400">Đang tải trang cá nhân...</p>`;
@@ -907,7 +1280,6 @@
                 const author = userDoc.data();
                 const isAdmin = author.username === 'quanly';
 
-                // Lấy tác phẩm của tác giả
                 const q = window.query(window.collection(window.db, "stories"), window.where("authorId", "==", authorId));
                 const snap = await window.getDocs(q);
                 let storiesHtml = '';
@@ -915,31 +1287,31 @@
                     const s = docSnap.data();
                     const sId = docSnap.id;
                     storiesHtml += `
-                        <div onclick="switchView('read-story', {storyId: '${sId}'})" class="bg-gray-800 p-4 rounded-xl border border-gray-700 cursor-pointer hover:border-purple-500">
+                        <div onclick="switchView('story-detail', {storyId: '${sId}'})" class="bg-gray-800 p-4 rounded-2xl border border-gray-700 cursor-pointer hover:border-purple-500 transition shadow-md">
                             <h4 class="font-bold text-white">${s.title}</h4>
-                            <p class="text-xs text-gray-400">${s.genre} • ${s.type} | Tim: ${s.hearts || 0}</p>
+                            <p class="text-xs text-gray-400 mt-1">${s.genre} • ${s.type} | Tim: ${s.hearts || 0}</p>
                         </div>
                     `;
                 });
 
                 content.innerHTML = `
                     <div class="max-w-3xl mx-auto space-y-6">
-                        <div class="bg-gray-800 p-8 rounded-2xl border border-gray-700 flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6">
-                            <img src="${author.bgUrl || 'https://via.placeholder.com/100'}" class="w-24 h-24 rounded-full object-cover border-4 border-purple-500">
+                        <div class="bg-gray-800 p-8 rounded-3xl border border-gray-700 shadow-xl flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6">
+                            <img src="${author.bgUrl || 'https://via.placeholder.com/100'}" class="w-24 h-24 rounded-full object-cover border-4 border-purple-500 shadow-lg">
                             <div class="text-center md:text-left space-y-2 flex-grow">
-                                <h2 class="text-2xl font-bold ${isAdmin ? 'badge-huyen-thoai text-red-500' : getRankClass(author.reputation)}">
+                                <h2 class="text-2xl font-extrabold ${isAdmin ? 'badge-huyen-thoai text-red-500' : getRankClass(author.reputation)}">
                                     ${author.displayName || author.username} ${isAdmin ? '<i class="fas fa-check-circle text-blue-500"></i>' : ''}
                                 </h2>
-                                <p class="text-xs text-gray-400">Cấp bậc: ${getRankName(author.reputation)} | Độ nổi tiếng: ${author.reputation}</p>
-                                <button onclick="donateAuthorDirect('${authorId}')" class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition">
+                                <p class="text-xs text-gray-400">Cấp bậc: <span class="text-purple-300 font-bold">${getRankName(author.reputation)}</span> | Độ nổi tiếng: <span class="text-pink-400 font-bold">${author.reputation}</span></p>
+                                <button onclick="donateAuthorDirect('${authorId}')" class="bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-700 hover:to-amber-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-md">
                                     <i class="fas fa-coins mr-1"></i> Tặng Xu Cho Tác Giả
                                 </button>
                             </div>
                         </div>
 
-                        <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700 space-y-4">
-                            <h3 class="text-xl font-bold text-purple-300">Tác phẩm của ${author.displayName || author.username}</h3>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">${storiesHtml || '<p class="text-gray-400 text-sm">Chưa có tác phẩm nào.</p>'}</div>
+                        <div class="bg-gray-800 p-6 rounded-3xl border border-gray-700 shadow-xl space-y-4">
+                            <h3 class="text-lg font-bold text-purple-300">Tác phẩm của ${author.displayName || author.username}</h3>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">${storiesHtml || '<p class="text-gray-400 text-xs py-2">Chưa có tác phẩm nào.</p>'}</div>
                         </div>
                     </div>
                 `;
@@ -948,10 +1320,30 @@
             }
         }
 
-        async function donateAuthorDirect(authorId) {
+        function donateAuthorDirect(authorId) {
             if (!window.currentUser) { switchView('auth'); return; }
-            const amount = parseInt(prompt("Nhập số xu muốn tặng:", "10"));
-            if (!amount || amount <= 0) return;
+            const modalHtml = `
+                <div class="flex justify-between items-center border-b border-gray-700 pb-3">
+                    <h3 class="text-lg font-bold text-yellow-400"><i class="fas fa-coins mr-2"></i> Tặng Xu Trực Tiếp</h3>
+                    <button onclick="closeCustomModal()" class="text-gray-400 hover:text-white"><i class="fas fa-times text-lg"></i></button>
+                </div>
+                <div class="space-y-4 pt-2">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-300 mb-1">Số xu tặng tác giả</label>
+                        <input type="number" id="modalDonateDirectAmount" class="w-full bg-gray-700 border border-gray-600 rounded-xl px-3.5 py-2 text-white text-sm" value="10">
+                    </div>
+                    <div class="flex justify-end space-x-2 pt-3 border-t border-gray-700">
+                        <button onclick="closeCustomModal()" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-xs font-bold rounded-xl transition">Hủy</button>
+                        <button onclick="saveDonateAuthorDirect('${authorId}')" class="px-5 py-2 bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-bold rounded-xl transition shadow-md">Tặng Xu Ngay</button>
+                    </div>
+                </div>
+            `;
+            showCustomModal(modalHtml);
+        }
+
+        async function saveDonateAuthorDirect(authorId) {
+            const amount = parseInt(document.getElementById('modalDonateDirectAmount').value);
+            if (!amount || amount <= 0) { alert("Số xu phải lớn hơn 0!"); return; }
             if (window.currentProfile.username !== 'quanly' && window.currentProfile.coins < amount) {
                 alert("Bạn không đủ xu!");
                 return;
@@ -967,34 +1359,92 @@
                 if (aSnap.exists()) {
                     await window.updateDoc(authorRef, { coins: (aSnap.data().coins || 0) + amount });
                 }
+                closeCustomModal();
                 alert("Tặng xu thành công!");
                 renderNavbar();
             } catch(e) { alert("Lỗi: " + e.message); }
         }
 
-        // --- Mục Xu & Đổi Danh Tiếng ---
+        // --- KHO XU & ĐỔI DANH TIẾNG ---
         function renderCoinsPage() {
             if (!window.currentUser) { switchView('auth'); return; }
             const p = window.currentProfile;
+            const cfg = window.systemConfig;
             const content = document.getElementById('appMainContent');
             content.innerHTML = `
-                <div class="max-w-md mx-auto bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-700 space-y-6 text-center">
-                    <h2 class="text-2xl font-bold text-yellow-400"><i class="fas fa-coins mr-2"></i> Kho Xu & Danh Tiếng</h2>
-                    <div class="bg-gray-700 p-4 rounded-xl">
-                        <p class="text-xs text-gray-400">Số xu hiện có</p>
-                        <p class="text-3xl font-extrabold text-yellow-400">${p.coins} Xu</p>
+                <div class="max-w-md mx-auto bg-gray-800 p-8 rounded-3xl shadow-2xl border border-gray-700 space-y-6 text-center">
+                    <h2 class="text-2xl font-extrabold text-yellow-400"><i class="fas fa-coins mr-2"></i> Kho Xu & Nhận Thưởng</h2>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-gray-700/60 p-4 rounded-2xl border border-gray-600">
+                            <p class="text-xs text-gray-400">Số xu hiện có</p>
+                            <p class="text-2xl font-extrabold text-yellow-400 mt-1">${p.coins} Xu</p>
+                        </div>
+                        <div class="bg-gray-700/60 p-4 rounded-2xl border border-gray-600">
+                            <p class="text-xs text-gray-400">Độ nổi tiếng</p>
+                            <p class="text-2xl font-extrabold text-purple-400 mt-1">${p.reputation}</p>
+                        </div>
                     </div>
-                    <div class="bg-gray-700 p-4 rounded-xl">
-                        <p class="text-xs text-gray-400">Độ nổi tiếng hiện tại</p>
-                        <p class="text-3xl font-extrabold text-purple-400">${p.reputation}</p>
-                    </div>
+
                     <div class="space-y-3 pt-2">
-                        <button onclick="exchangeCoinsToReputation()" class="w-full bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-700 hover:to-amber-700 text-white font-bold py-3 rounded-xl transition">
-                            Đổi 10 Xu lấy 1 Độ Nổi Tiếng (Tối đa 5 lần/ngày)
+                        <button onclick="handleDailyCheckin()" class="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold py-3 rounded-xl transition shadow-lg text-xs flex items-center justify-center space-x-2">
+                            <i class="fas fa-calendar-check text-base"></i>
+                            <span>Điểm Danh Hằng Ngày (+${cfg.dailyCheckinCoins || 50} Xu)</span>
+                        </button>
+
+                        <button onclick="handleWatchAd()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 rounded-xl transition shadow-lg text-xs flex items-center justify-center space-x-2">
+                            <i class="fas fa-video text-base"></i>
+                            <span>Coi Quảng Cáo Nhận Xu (+${cfg.adRewardCoins || 20} Xu)</span>
+                        </button>
+
+                        <button onclick="exchangeCoinsToReputation()" class="w-full bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-700 hover:to-amber-700 text-white font-bold py-3 rounded-xl transition shadow-lg text-xs flex items-center justify-center space-x-2">
+                            <i class="fas fa-star text-base"></i>
+                            <span>Đổi 10 Xu = 1 Độ Nổi Tiếng (Tối đa 5 lần/ngày)</span>
                         </button>
                     </div>
                 </div>
             `;
+        }
+
+        async function handleDailyCheckin() {
+            const p = window.currentProfile;
+            const today = new Date().toDateString();
+            if (p.lastCheckinDate === today) {
+                alert("Hôm nay bạn đã điểm danh rồi! Hãy quay lại vào ngày mai nhé.");
+                return;
+            }
+            const reward = window.systemConfig.dailyCheckinCoins || 50;
+            p.coins += reward;
+            p.lastCheckinDate = today;
+
+            try {
+                await window.updateDoc(window.doc(window.db, "users", window.currentUser.uid), {
+                    coins: p.coins,
+                    lastCheckinDate: p.lastCheckinDate
+                });
+                alert(`🎉 Điểm danh thành công! Bạn nhận được +${reward} Xu.`);
+                renderCoinsPage();
+                renderNavbar();
+            } catch(e) { alert("Lỗi: " + e.message); }
+        }
+
+        async function handleWatchAd() {
+            const adUrl = window.systemConfig.adLink || "https://google.com";
+            const reward = window.systemConfig.adRewardCoins || 20;
+
+            window.open(adUrl, '_blank');
+            
+            const p = window.currentProfile;
+            p.coins += reward;
+
+            try {
+                await window.updateDoc(window.doc(window.db, "users", window.currentUser.uid), {
+                    coins: p.coins
+                });
+                alert(`🎉 Cảm ơn bạn đã xem quảng cáo! +${reward} Xu đã cộng vào tài khoản.`);
+                renderCoinsPage();
+                renderNavbar();
+            } catch(e) { alert("Lỗi: " + e.message); }
         }
 
         async function exchangeCoinsToReputation() {
@@ -1030,31 +1480,37 @@
             } catch(e) { alert("Lỗi: " + e.message); }
         }
 
-        // --- Gửi Thư Giữa Các Tài Khoản (Chữ, Ảnh, Ghi âm) ---
+        // --- Gửi Thư Tín ---
         async function renderMessagesPage() {
             if (!window.currentUser) { switchView('auth'); return; }
             const content = document.getElementById('appMainContent');
             content.innerHTML = `
-                <div class="max-w-2xl mx-auto bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-700 space-y-6">
-                    <h2 class="text-2xl font-bold text-purple-400 border-b border-gray-700 pb-3"><i class="fas fa-envelope mr-2"></i> Hộp Thư Tín</h2>
+                <div class="max-w-2xl mx-auto bg-gray-800 p-6 md:p-8 rounded-3xl shadow-2xl border border-gray-700 space-y-6">
+                    <h2 class="text-2xl font-extrabold text-purple-400 border-b border-gray-700 pb-3"><i class="fas fa-envelope mr-2"></i> Hộp Thư Tín</h2>
                     
-                    <form onsubmit="sendMessage(event)" class="space-y-4 bg-gray-700/50 p-4 rounded-xl border border-gray-600">
-                        <h3 class="text-sm font-bold text-white">Gửi thư mới</h3>
+                    <form onsubmit="sendMessage(event)" class="space-y-4 bg-gray-700/50 p-5 rounded-2xl border border-gray-600">
+                        <h3 class="text-sm font-bold text-white">Soạn thư mới</h3>
                         <div>
-                            <input type="text" id="msgReceiver" required placeholder="Tên đăng nhập người nhận..." class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-xs">
+                            <input type="text" id="msgReceiver" required placeholder="Tên đăng nhập người nhận..." class="w-full bg-gray-700 border border-gray-600 rounded-xl px-3.5 py-2 text-white text-xs">
                         </div>
                         <div>
-                            <textarea id="msgText" rows="2" placeholder="Nội dung chữ..." class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-xs"></textarea>
+                            <textarea id="msgText" rows="2" placeholder="Nội dung lời nhắn..." class="w-full bg-gray-700 border border-gray-600 rounded-xl px-3.5 py-2 text-white text-xs"></textarea>
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <input type="url" id="msgImg" placeholder="Link ảnh (URL)..." class="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-xs">
-                            <input type="url" id="msgAudio" placeholder="Link ghi âm (Audio URL)..." class="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-xs">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-300 mb-1">Tải ảnh kèm theo</label>
+                                <input type="file" id="msgImgFile" accept="image/*" class="w-full bg-gray-700 text-xs text-gray-300 border border-gray-600 rounded-lg p-1">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-300 mb-1">Tải file ghi âm/Audio</label>
+                                <input type="file" id="msgAudioFile" accept="audio/*" class="w-full bg-gray-700 text-xs text-gray-300 border border-gray-600 rounded-lg p-1">
+                            </div>
                         </div>
-                        <button type="submit" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-xs font-bold text-white">Gửi Thư</button>
+                        <button type="submit" class="bg-purple-600 hover:bg-purple-700 px-5 py-2 rounded-xl text-xs font-bold text-white transition shadow-md">Gửi Thư Tín</button>
                     </form>
 
                     <div id="messagesListContainer" class="space-y-3">
-                        <p class="text-gray-400 text-sm">Đang tải hộp thư...</p>
+                        <p class="text-gray-400 text-xs">Đang tải hộp thư...</p>
                     </div>
                 </div>
             `;
@@ -1065,14 +1521,20 @@
             e.preventDefault();
             const receiverUsername = document.getElementById('msgReceiver').value.trim().toLowerCase();
             const text = document.getElementById('msgText').value.trim();
-            const imageUrl = document.getElementById('msgImg').value.trim();
-            const audioUrl = document.getElementById('msgAudio').value.trim();
+            const imgInput = document.getElementById('msgImgFile');
+            const audioInput = document.getElementById('msgAudioFile');
+
+            let imageUrl = '';
+            let audioUrl = '';
+
+            if (imgInput.files[0]) imageUrl = await fileToBase64(imgInput.files[0]);
+            if (audioInput.files[0]) audioUrl = await fileToBase64(audioInput.files[0]);
 
             try {
                 const q = window.query(window.collection(window.db, "users"), window.where("username", "==", receiverUsername));
                 const snap = await window.getDocs(q);
                 if (snap.empty) {
-                    alert("Không tìm thấy người nhận!");
+                    alert("Không tìm thấy tên đăng nhập người nhận!");
                     return;
                 }
                 let receiverUid = '';
@@ -1085,7 +1547,7 @@
                     text, imageUrl, audioUrl,
                     createdAt: window.serverTimestamp()
                 });
-                alert("Gửi thư thành công!");
+                alert("🎉 Gửi thư tín thành công!");
                 renderMessagesPage();
             } catch(err) { alert("Lỗi: " + err.message); }
         }
@@ -1096,25 +1558,25 @@
                 const q = window.query(window.collection(window.db, "messages"), window.where("receiverId", "==", window.currentUser.uid));
                 const snap = await window.getDocs(q);
                 if (snap.empty) {
-                    container.innerHTML = `<p class="text-gray-400 text-sm">Hộp thư trống.</p>`;
+                    container.innerHTML = `<p class="text-gray-400 text-xs py-4 text-center">Hộp thư tín trống.</p>`;
                     return;
                 }
                 let html = '';
                 snap.forEach(docSnap => {
                     const m = docSnap.data();
                     html += `
-                        <div class="bg-gray-700 p-4 rounded-xl border border-gray-600 space-y-2">
+                        <div class="bg-gray-700/60 p-4 rounded-2xl border border-gray-600 space-y-2">
                             <div class="flex justify-between">
-                                <span class="font-bold text-purple-300 text-xs">Từ: ${m.senderName}</span>
+                                <span class="font-bold text-purple-300 text-xs">Từ tác giả: ${m.senderName}</span>
                             </div>
                             ${m.text ? `<p class="text-sm text-gray-200">${m.text}</p>` : ''}
-                            ${m.imageUrl ? `<img src="${m.imageUrl}" class="max-h-40 rounded-lg object-cover">` : ''}
+                            ${m.imageUrl ? `<img src="${m.imageUrl}" class="max-h-48 rounded-xl object-cover shadow-md">` : ''}
                             ${m.audioUrl ? `<audio controls class="w-full h-8"><source src="${m.audioUrl}"></audio>` : ''}
                         </div>
                     `;
                 });
                 container.innerHTML = html;
-            } catch(e) { container.innerHTML = `<p class="text-red-400 text-sm">Lỗi tải thư.</p>`; }
+            } catch(e) { container.innerHTML = `<p class="text-red-400 text-xs">Lỗi tải thư.</p>`; }
         }
 
         // --- Bảng Điều Khiển Quản Lý (Admin Panel) ---
@@ -1124,46 +1586,80 @@
                 switchView('home');
                 return;
             }
+            const cfg = window.systemConfig;
             const content = document.getElementById('appMainContent');
             content.innerHTML = `
-                <div class="max-w-3xl mx-auto bg-gray-800 p-8 rounded-2xl shadow-xl border border-red-500 space-y-6">
-                    <h2 class="text-2xl font-bold text-red-500 border-b border-gray-700 pb-3"><i class="fas fa-shield-alt mr-2"></i> Bảng Điều Khiển Quản Lý</h2>
+                <div class="max-w-3xl mx-auto bg-gray-800 p-8 rounded-3xl shadow-2xl border border-red-500/50 space-y-6">
+                    <h2 class="text-2xl font-extrabold text-red-500 border-b border-gray-700 pb-3 flex items-center">
+                        <i class="fas fa-shield-alt mr-2"></i> Bảng Điều Khiển Quản Lý
+                    </h2>
                     
-                    <form onsubmit="handleUpdateSystemConfig(event)" class="space-y-4 bg-gray-700/50 p-4 rounded-xl border border-gray-600">
-                        <h3 class="font-bold text-white text-sm">Cài đặt giao diện & Thông báo hệ thống</h3>
+                    <form onsubmit="handleUpdateSystemConfig(event)" class="space-y-4 bg-gray-700/50 p-5 rounded-2xl border border-gray-600">
+                        <h3 class="font-bold text-white text-sm">Cài đặt Hệ Thống, Quảng Cáo & Giao Diện</h3>
+                        
                         <div>
-                            <label class="block text-xs font-bold text-gray-300 mb-1">Nội dung thanh thông báo</label>
-                            <input type="text" id="adminNotifText" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-xs" value="📢 Chào mừng bạn đến với Truyện hay Gn!">
+                            <label class="block text-xs font-bold text-yellow-400 mb-1">Link Xem Quảng Cáo</label>
+                            <input type="url" id="adminAdLink" required class="w-full bg-gray-700 border border-gray-600 rounded-xl px-3.5 py-2 text-white text-xs" value="${cfg.adLink || 'https://google.com'}">
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-300 mb-1">Màu nền thanh thông báo (Class Tailwind hoặc màu HEX)</label>
-                            <input type="text" id="adminNotifBg" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-xs" value="bg-indigo-600">
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-yellow-400 mb-1">Xu Thưởng Coi Quảng Cáo</label>
+                                <input type="number" id="adminAdCoins" required class="w-full bg-gray-700 border border-gray-600 rounded-xl px-3.5 py-2 text-white text-xs" value="${cfg.adRewardCoins || 20}">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-green-400 mb-1">Xu Thưởng Điểm Danh Mỗi Ngày</label>
+                                <input type="number" id="adminCheckinCoins" required class="w-full bg-gray-700 border border-gray-600 rounded-xl px-3.5 py-2 text-white text-xs" value="${cfg.dailyCheckinCoins || 50}">
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-300 mb-1">Hình nền trang web (URL)</label>
-                            <input type="url" id="adminWebBg" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-xs" placeholder="https://...">
+
+                        <div class="border-t border-gray-600 pt-3 space-y-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-300 mb-1">Nội dung thanh thông báo</label>
+                                <input type="text" id="adminNotifText" class="w-full bg-gray-700 border border-gray-600 rounded-xl px-3.5 py-2 text-white text-xs" value="📢 Chào mừng bạn đến với Truyện hay Gn!">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-300 mb-1">Màu nền thanh thông báo (Tailwind Class)</label>
+                                <input type="text" id="adminNotifBg" class="w-full bg-gray-700 border border-gray-600 rounded-xl px-3.5 py-2 text-white text-xs" value="bg-indigo-600">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-300 mb-1">Tải ảnh nền trang web từ máy</label>
+                                <input type="file" id="adminWebBgFile" accept="image/*" class="w-full bg-gray-700 text-xs text-gray-300 border border-gray-600 rounded-lg p-1">
+                            </div>
                         </div>
-                        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded-lg text-xs">Áp dụng hệ thống</button>
+
+                        <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs transition shadow-lg">Lưu Cài Đặt Hệ Thống</button>
                     </form>
                 </div>
             `;
         }
 
-        function handleUpdateSystemConfig(e) {
+        async function handleUpdateSystemConfig(e) {
             e.preventDefault();
             const text = document.getElementById('adminNotifText').value;
             const bgClass = document.getElementById('adminNotifBg').value;
-            const webBgUrl = document.getElementById('adminWebBg').value;
+            const bgFileInput = document.getElementById('adminWebBgFile');
 
-            document.getElementById('notificationText').innerText = text;
-            const bar = document.getElementById('systemNotificationBar');
-            bar.className = `${bgClass} text-white px-4 py-2 text-center text-sm font-medium shadow-md transition-all duration-300 flex justify-between items-center`;
+            const adLink = document.getElementById('adminAdLink').value.trim();
+            const adRewardCoins = parseInt(document.getElementById('adminAdCoins').value) || 20;
+            const dailyCheckinCoins = parseInt(document.getElementById('adminCheckinCoins').value) || 50;
 
-            if (webBgUrl) {
-                document.getElementById('mainBody').style.backgroundImage = `url('${webBgUrl}')`;
-                document.getElementById('mainBody').style.backgroundSize = 'cover';
-            }
-            alert("Đã cập nhật hệ thống thành công!");
+            window.systemConfig = { adLink, adRewardCoins, dailyCheckinCoins };
+
+            try {
+                await window.setDoc(window.doc(window.db, "settings", "system"), window.systemConfig);
+
+                document.getElementById('notificationText').innerText = text;
+                const bar = document.getElementById('systemNotificationBar');
+                bar.className = `${bgClass} text-white px-4 py-2 text-center text-sm font-medium shadow-md transition-all duration-300 flex justify-between items-center`;
+
+                if (bgFileInput.files[0]) {
+                    const webBgUrl = await fileToBase64(bgFileInput.files[0]);
+                    document.getElementById('mainBody').style.backgroundImage = `url('${webBgUrl}')`;
+                    document.getElementById('mainBody').style.backgroundSize = 'cover';
+                }
+                alert("🎉 Đã lưu cấu hình hệ thống thành công lên Firebase!");
+            } catch(err) { alert("Lỗi lưu cấu hình: " + err.message); }
         }
 
         function closeNotificationBar() {
